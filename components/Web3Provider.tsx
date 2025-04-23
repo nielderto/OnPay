@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Config, WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { XellarKitProvider, defaultConfig, darkTheme } from "@xellar/kit";
-import { mainnet } from "viem/chains";
+import { liskSepolia} from "viem/chains";
 
 const config = defaultConfig({
   appName: "Xellar",
@@ -15,7 +15,7 @@ const config = defaultConfig({
   xellarAppId: 'f67a35ea-57c9-4c57-9afc-8194fa0f19fa',
   xellarEnv: "sandbox",
   ssr: true, // Use this if you're using Next.js App Router
-  chains: [mainnet]
+  chains: [liskSepolia]
 }) as Config;
  
 const queryClient = new QueryClient();
