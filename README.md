@@ -26,7 +26,7 @@ We believe crypto payments should be as simple as sending a message — and with
 
 Traditional crypto wallets rely on long hexadecimal addresses like:
 
-"0x8cD9F1e0b7A12345aBcDe98765e123456789abcd"
+`0x8cD9F1e0b7A12345aBcDe98765e123456789abcd`
 
 
 That’s hard to remember, easy to mistype, and not at all beginner-friendly.
@@ -35,6 +35,6 @@ That’s hard to remember, easy to mistype, and not at all beginner-friendly.
 With our ENS-powered naming system, users can register unique usernames like:
 
 
-@jenny.idrx @markus.idrx @shop123.idrx
+`@jenny.idrx` `@markus.idrx` `@shop123.idrx`
 
 This creates a payment experience that feels familiar — like sending money on your favorite messaging app — but fully decentralized.

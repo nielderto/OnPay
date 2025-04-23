@@ -8,7 +8,7 @@ export default function Balance(){
     const {data: balance} = useBalance({
         address: address as `0x${string}`,
         chainId: liskSepolia.id,
-        token: '0xD63029C1a3dA68b51c67c6D1DeC3DEe50D681661',
+        token: '0xD63029C1a3dA68b51c67c6D1DeC3DEe50D681661', // IDRX token address
     })
 
     const formattedBalance = balance ? 
@@ -17,5 +17,5 @@ export default function Balance(){
             maximumFractionDigits: 4
         }).format(Number(balance.formatted)) : '0.00';
 
-    return <div>{formattedBalance} {balance?.symbol}</div>
+    return <div className="text-sm text-gray-600">Available: {formattedBalance} IDRX</div>
 }
