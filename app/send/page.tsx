@@ -1,12 +1,11 @@
 import Navbar from "@/components/Navbar";
-
-export default function Homepage(){
+export default function SendPage(){
     return (
         <div>
-            <Navbar />
             <div className="flex flex-col items-center justify-center h-screen">
-                <h1>Homepage</h1>
+                <h1>Send</h1>
             </div>
+            <Navbar />
         </div>
     )
 }
