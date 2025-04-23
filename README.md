@@ -36,3 +36,5 @@ With our ENS-powered naming system, users can register unique usernames like:
 
 
 @jenny.idrx @markus.idrx @shop123.idrx
+
+This creates a payment experience that feels familiar — like sending money on your favorite messaging app — but fully decentralized.

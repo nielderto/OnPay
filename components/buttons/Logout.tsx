@@ -25,7 +25,7 @@ export default function Logout(){
                 alt="Sign out" 
                 width={20} 
                 height={20}
-                className="w-5 h-5"
+                className="w-5 h-5 "
             />
             <span>Sign Out</span>
         </button>
