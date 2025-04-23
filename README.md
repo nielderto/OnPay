@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌐 OnPay
 
-## Getting Started
+**OnPay** is a next-generation blockchain-powered payment app that makes transferring **IDRX** tokens effortless, lightning-fast, and user-friendly.
 
-First, run the development server:
+We believe crypto payments should be as simple as sending a message — and with OnPay, that’s exactly what you get.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ✨ Key Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- ⚡ **Fast & Secure Transactions**  
+  Built on a robust blockchain network to ensure quick and safe transfers of IDRX tokens.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- 🧠 **Human-Friendly Usernames**  
+  Say goodbye to long wallet addresses. OnPay integrates with **ENS (Ethereum Name Service)** so you can send tokens using simple, readable usernames like `@alice.idrx`.
 
-## Learn More
+- 🎨 **Clean & Intuitive UI**  
+  A sleek and modern interface designed for simplicity, accessibility, and a seamless user experience.
 
-To learn more about Next.js, take a look at the following resources:
+- 🔐 **Decentralized & Trustless**  
+  Your assets, your control. No middlemen, no compromises — full ownership over your funds.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 💡 Why OnPay?
 
-## Deploy on Vercel
+Traditional crypto wallets rely on long hexadecimal addresses like:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+"0x8cD9F1e0b7A12345aBcDe98765e123456789abcd"
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+That’s hard to remember, easy to mistype, and not at all beginner-friendly.
+
+**OnPay fixes this.**  
+With our ENS-powered naming system, users can register unique usernames like:
+
+
+@jenny.idrx @markus.idrx @shop123.idrx

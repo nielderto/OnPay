@@ -21,24 +21,23 @@ const config = defaultConfig({
 const queryClient = new QueryClient();
  
 export const Web3Provider = ({ children }: { children: React.ReactNode }) => {
-  const [mounted, setMounted] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
-  // Prevent hydration mismatch by not rendering until mounted
-  if (!mounted) {
-    return null;
-  }
+    if (!mounted) {
+        return null;
+    }
 
-  return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <XellarKitProvider theme={darkTheme}>
-          {children}
-        </XellarKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
-  );
+    return (
+        <WagmiProvider config={config}>
+            <QueryClientProvider client={queryClient}>
+                <XellarKitProvider theme={darkTheme}>
+                    {children}
+                </XellarKitProvider>
+            </QueryClientProvider>
+        </WagmiProvider>
+    );
 };
