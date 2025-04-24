@@ -8,7 +8,7 @@ export default function Balance(){
     const {data: balance} = useBalance({
         address: address as `0x${string}`,
         chainId: liskSepolia.id,
-        token: '0xD63029C1a3dA68b51c67c6D1DeC3DEe50D681661', // IDRX token address
+        token: '0xD63029C1a3dA68b51c67c6D1DeC3DEe50D681661', 
     })
 
     const formattedBalance = balance ? 

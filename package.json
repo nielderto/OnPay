@@ -12,6 +12,8 @@
     "@tanstack/react-query": "^5.74.4",
     "@wagmi/core": "^2.16.7",
     "@xellar/kit": "^2.0.1",
+    "@xellar/sdk": "^4.2.13",
+    "axios": "^1.8.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.501.0",
