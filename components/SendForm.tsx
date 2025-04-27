@@ -1,193 +1,92 @@
 'use client'
-import { useState } from "react";
-import { idrxPayConfig } from "@/abi/idrxPay";
-import { useAccount, useReadContract, useWriteContract, useConfig } from "wagmi";
-import { isAddress, parseUnits, maxUint256 } from 'viem'
-import { waitForTransactionReceipt } from 'wagmi/actions'
+
+import { useState } from 'react';
+import { useAccount } from 'wagmi';
+import { isAddress } from 'viem';
+import MetaTxProvider from './MetaTxProvider';
 import Balance from './Balance';
-import toast, { Toaster } from 'react-hot-toast';
-
-// Minimal ABI for ERC20 allowance/approve
-const erc20Abi = [
-    {
-        inputs: [{ internalType: "address", name: "owner", type: "address" }, { internalType: "address", name: "spender", type: "address" }],
-        name: "allowance",
-        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-        stateMutability: "view",
-        type: "function",
-    },
-    {
-        inputs: [{ internalType: "address", name: "spender", type: "address" }, { internalType: "uint256", name: "amount", type: "uint256" }],
-        name: "approve",
-        outputs: [{ internalType: "bool", name: "", type: "bool" }],
-        stateMutability: "nonpayable",
-        type: "function",
-    },
-    {
-        inputs: [],
-        name: "decimals",
-        outputs: [{ internalType: "uint8", name: "", type: "uint8" }],
-        stateMutability: "view",
-        type: "function",
-    },
-] as const;
-
-const IDRX_TOKEN_ADDRESS = '0xD63029C1a3dA68b51c67c6D1DeC3DEe50D681661';
+import toast from 'react-hot-toast';
 
 export default function SendForm() {
-    const [isProcessing, setIsProcessing] = useState(false);
-    const {address, chainId} = useAccount();
-    const config = useConfig();
-    const [recipientAddress, setRecipientAddress] = useState('');
-    const [amount, setAmount] = useState('');
-    const [message, setMessage] = useState('');
+  const { address, isConnected } = useAccount();
+  const [recipientAddress, setRecipientAddress] = useState('');
+  const [amount, setAmount] = useState('');
+  const [isValidAddress, setIsValidAddress] = useState(false);
 
-    // Read token decimals
-    const { data: decimals, isLoading: isLoadingDecimals } = useReadContract({
-        address: IDRX_TOKEN_ADDRESS, 
-        abi: erc20Abi,
-        functionName: 'decimals',
-    });
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newAddress = e.target.value;
+    setRecipientAddress(newAddress);
+    setIsValidAddress(isAddress(newAddress));
+  };
 
-    // Read current allowance
-    const { data: currentAllowance, refetch: refetchAllowance, isLoading: isLoadingAllowance } = useReadContract({
-        address: IDRX_TOKEN_ADDRESS,
-        abi: erc20Abi,
-        functionName: 'allowance',
-        args: [address!, idrxPayConfig.address],
-        query: {
-            enabled: !!address,
-        }
-    });
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Only allow numbers and one decimal point
+    if (/^\d*\.?\d*$/.test(value)) {
+      setAmount(value);
+    }
+  };
 
-    // Hook for approve transaction
-    const { writeContractAsync: approveAsync, isPending: isApproving } = useWriteContract();
-
-    // Hook for sendIDRX transaction
-    const { writeContractAsync: sendAsync, isPending: isSending } = useWriteContract();
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setMessage('');
-        
-        if (!address || !recipientAddress || !amount || decimals === undefined || currentAllowance === undefined || !chainId) {
-            setMessage('Please fill all fields and ensure wallet is connected.');
-            return;
-        }
-        
-        if (!isAddress(recipientAddress)) {
-            setMessage('Invalid recipient address');
-            return;
-        }
-
-        setIsProcessing(true);
-        let approveTxHash: `0x${string}` | undefined = undefined;
-
-        try {
-            const amountInBaseUnit = parseUnits(amount, decimals);
-
-            // 1. Check allowance and approve if needed
-            if (currentAllowance < amountInBaseUnit) {
-                setMessage('Approving tokens...');
-                approveTxHash = await approveAsync({
-                    address: IDRX_TOKEN_ADDRESS,
-                    abi: erc20Abi,
-                    functionName: 'approve',
-                    args: [idrxPayConfig.address, maxUint256],
-                });
-                
-                const approveReceipt = await waitForTransactionReceipt(config, { hash: approveTxHash, chainId });
-                if (approveReceipt.status !== 'success') {
-                    throw new Error('Approval failed');
-                }
-                
-                await refetchAllowance(); 
-            }
-
-            // 2. Send the tokens
-            setMessage('Sending tokens...');
-            const sendTxHash = await sendAsync({
-                ...idrxPayConfig,
-                functionName: 'sendIDRX',
-                args: [recipientAddress as `0x${string}`, amountInBaseUnit],
-            });
-            
-            const sendReceipt = await waitForTransactionReceipt(config, { hash: sendTxHash, chainId });
-            if (sendReceipt.status !== 'success') {
-                throw new Error('Send failed');
-            }
-
-            toast.success('Transaction completed! 🎉');
-            setRecipientAddress('');
-            setAmount('');
-            setMessage('');
-
-        } catch (err: any) {
-            console.error('Transaction Error:', err);
-            if (err.message.includes('rejected')) {
-                setMessage('Transaction rejected');
-                toast.error('Transaction rejected');
-            } else {
-                setMessage('Transaction failed');
-                toast.error('Transaction failed');
-            }
-        } finally {
-            setIsProcessing(false);
-        }
-    };
-
-    const isLoading = isProcessing || isLoadingDecimals || isLoadingAllowance || isApproving || isSending;
-
+  if (!isConnected) {
     return (
-        <>
-            <Toaster position="top-right" />
-            <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
-                <div>
-                    <label htmlFor="recipient" className="block text-sm font-medium text-gray-700">
-                        Recipient 
-                    </label>
-                    <input
-                        type="text"
-                        id="recipient"
-                        value={recipientAddress}
-                        onChange={(e) => setRecipientAddress(e.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"
-                        placeholder="Enter recipient address (0x...)"
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
-                        Amount (IDRX)
-                    </label>
-                    <input
-                        type="number"
-                        id="amount"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"
-                        placeholder="eg.. 0.05"
-                        step="any"
-                        required
-                    />
-                </div>
-                <Balance />
-
-                {message && (
-                    <div className={`text-sm ${message.includes('failed') || message.includes('rejected') || message.includes('Invalid') ? 'text-red-500' : 'text-blue-600'}`}>
-                        {message}
-                    </div>
-                )}
-
-                <button
-                    type="submit"
-                    disabled={isLoading || !address || decimals === undefined}
-                    className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {isLoading ? 'Processing...' : 'Send Tokens'}
-                </button>
-            </form>
-        </>
+      <div className="p-4 text-center">
+        <p className="text-gray-600">Please connect your wallet to send tokens</p>
+      </div>
     );
-} 
+  }
+
+  return (
+    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-6">Send IDRX</h2>
+      
+      <div className="mb-4">
+        <Balance />
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="recipient" className="block text-sm font-medium text-gray-700 mb-1">
+            Recipient Address
+          </label>
+          <input
+            id="recipient"
+            type="text"
+            value={recipientAddress}
+            onChange={handleAddressChange}
+            placeholder="0x..."
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+              recipientAddress && !isValidAddress
+                ? 'border-red-500 focus:ring-red-500'
+                : 'border-gray-300 focus:ring-blue-500'
+            }`}
+          />
+          {recipientAddress && !isValidAddress && (
+            <p className="mt-1 text-sm text-red-500">Please enter a valid Ethereum address</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
+            Amount (IDRX)
+          </label>
+          <input
+            id="amount"
+            type="text"
+            value={amount}
+            onChange={handleAmountChange}
+            placeholder="0.0"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {isValidAddress && amount && parseFloat(amount) > 0 && (
+          <MetaTxProvider
+            recipientAddress={recipientAddress}
+            amount={amount}
+            decimals={18}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
