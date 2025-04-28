@@ -4,6 +4,7 @@ import { useAccount } from "wagmi";
 import axios from "axios";
 import { formatUnits } from "viem";
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
+import { useState } from "react";
 
 interface Transaction {
   hash: string;
@@ -66,6 +67,7 @@ const fetchTransactions = async (address: string): Promise<Transaction[]> => {
 
 export const TransactionHistory = () => {
   const { address, isConnected } = useAccount();
+  const [showWeek, setShowWeek] = useState(false);
 
   const { data: transactions, isLoading, error } = useQuery({
     queryKey: ["idrxTokenTransactions", address, IDRX_TOKEN_ADDRESS], // More specific query key
@@ -107,16 +109,41 @@ export const TransactionHistory = () => {
     );
   }
 
+  // Filter transactions within the last 7 days
+  const oneWeekAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
+  const recentTransactions = transactions.filter(tx => tx.timestamp >= oneWeekAgo);
+  const latestThree = transactions.slice(0, 3);
+
+  const displayTransactions = showWeek ? recentTransactions : latestThree;
+
+  if (displayTransactions.length === 0) {
+    return (
+      <div className="p-4 text-gray-500 text-center">
+        <p>{showWeek ? "No transactions in the last 7 days." : "No recent transactions."}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold mb-4">IDRX Transaction History</h2>
+    <div className="w-full px-2 sm:px-0 mt-6 space-y-4 pb-20 sm:max-w-xl sm:mx-auto">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg sm:text-xl font-semibold">
+          {showWeek ? "History (a week's transactions)" : "History"}
+        </h2>
+        <button
+          className="px-3 py-2 rounded-lg bg-[#7B3FE4] text-white font-medium hover:bg-[#6a2fd0] transition-all ml-2 text-sm sm:text-base"
+          onClick={() => setShowWeek((prev) => !prev)}
+        >
+          {showWeek ? "Show Latest 3" : "Show All"}
+        </button>
+      </div>
       <div className="space-y-2">
-        {transactions.map((tx) => (
+        {displayTransactions.map((tx) => (
           <div
             key={tx.hash}
-            className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm"
+            className="flex flex-row items-center justify-between p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm"
           >
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3">
               <div
                 className={`p-2 rounded-full ${
                   tx.type === "received"
@@ -131,23 +158,23 @@ export const TransactionHistory = () => {
                 )}
               </div>
               <div>
-                <p className="font-medium">
+                <p className="font-medium text-sm sm:text-base">
                   {tx.type === "received" ? "Received" : "Sent"}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs sm:text-sm text-gray-500">
                   {new Date(tx.timestamp * 1000).toLocaleDateString()}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="font-medium">
+              <p className="font-medium text-sm sm:text-base">
                 {formatUnits(BigInt(tx.value), parseInt(tx.tokenDecimal || '18'))} {tx.tokenSymbol || 'IDRX'}
               </p>
               <a
                 href={`https://sepolia-blockscout.lisk.com/tx/${tx.hash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-blue-500 hover:underline"
+                className="text-xs sm:text-sm text-blue-500 hover:underline"
               >
                 View on Blockscout
               </a>

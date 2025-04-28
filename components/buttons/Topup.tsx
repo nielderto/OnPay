@@ -1,24 +1,19 @@
 'use client'
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { CirclePlusIcon } from "lucide-react";
 
 export default function Topup(){
     const router = useRouter();
     return (
         <button 
         onClick={() => router.push('/topup')}
-        className=" text-black px-2 py-1.5 rounded-lg flex flex-col items-center 
-                          transition-all duration-200 hover:scale-105 active:scale-95
+        className="text-black px-3 py-1.5 rounded-lg flex flex-col sm:flex-row items-center gap-1 sm:gap-2
+                          transition-all duration-200 hover:scale-110 active:scale-95
                           text-xs sm:text-sm font-medium
-                          h-[56px] w-[56px] sm:w-auto sm:min-w-[80px]
-                          justify-center gap-0.5 shadow-sm hover:shadow-md hover:bg-green-600 active:bg-green-700">
-            <Image
-                src="/plus-circle.svg"
-                alt="Topup logo"
-                width={20}
-                height={20}
-                className="w-5 h-5"
-            />
+                          h-[48px] w-[48px] sm:h-[56px] sm:min-w-[120px]
+                          justify-center">
+            <CirclePlusIcon className="w-5 h-5 sm:w-6 sm:h-6"/>
             <span>Topup</span>
         </button>
     )

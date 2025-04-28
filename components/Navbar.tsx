@@ -22,6 +22,7 @@ export default function Navbar(){
                 <Link href="/" className="text-xl font-bold hover:text-gray-600 transition-colors">OnPay</Link>
                 <div className="flex items-center gap-4">
                     <SendFunds />
+                    <Topup />
                     <Logout />
                 </div>
             </div>

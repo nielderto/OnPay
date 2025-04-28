@@ -17,5 +17,5 @@ export default function Balance(){
             maximumFractionDigits: 4
         }).format(Number(balance.formatted)) : '0.00';
 
-    return <div className="text-sm text-gray-600">Available: {formattedBalance} IDRX</div>
+    return <div className="text-sm text-white">{formattedBalance} IDRX</div>
 }
