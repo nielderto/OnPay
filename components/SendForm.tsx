@@ -12,6 +12,7 @@ export default function SendForm() {
   const [recipientAddress, setRecipientAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [isValidAddress, setIsValidAddress] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newAddress = e.target.value;
@@ -27,6 +28,10 @@ export default function SendForm() {
     }
   };
 
+  const handleProcessingChange = (processing: boolean) => {
+    setIsProcessing(processing);
+  };
+
   if (!isConnected) {
     return (
       <div className="p-4 text-center">
@@ -37,7 +42,7 @@ export default function SendForm() {
 
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6">Send IDRX</h2>
+      <h2 className="text-2xl font-bold mb-6">Send IDRX (Gasless)</h2>
       
       <div className="mb-4">
         <Balance />
@@ -59,6 +64,7 @@ export default function SendForm() {
                 ? 'border-red-500 focus:ring-red-500'
                 : 'border-gray-300 focus:ring-blue-500'
             }`}
+            disabled={isProcessing}
           />
           {recipientAddress && !isValidAddress && (
             <p className="mt-1 text-sm text-red-500">Please enter a valid Ethereum address</p>
@@ -76,15 +82,24 @@ export default function SendForm() {
             onChange={handleAmountChange}
             placeholder="0.0"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isProcessing}
           />
         </div>
 
         {isValidAddress && amount && parseFloat(amount) > 0 && (
-          <MetaTxProvider
-            recipientAddress={recipientAddress}
-            amount={amount}
-            decimals={18}
-          />
+          <div className="mt-4 p-4 bg-blue-50 rounded-md">
+            <h3 className="text-lg font-medium text-blue-800 mb-2">Meta Transaction Flow</h3>
+            <ol className="list-decimal list-inside text-sm text-blue-700 space-y-1 mb-4">
+              <li>First, approve the IDRX token for the MetaTxForwarder contract</li>
+              <li>Then, send the transaction without paying gas fees</li>
+            </ol>
+            <MetaTxProvider
+              recipientAddress={recipientAddress}
+              amount={amount}
+              decimals={18}
+              onProcessingChange={handleProcessingChange}
+            />
+          </div>
         )}
       </div>
     </div>

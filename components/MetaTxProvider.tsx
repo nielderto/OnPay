@@ -5,172 +5,16 @@ import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
 import { parseEther, getContract, encodeFunctionData, erc20Abi } from 'viem';
 import { idrxPayConfig } from '@/abi/idrxPay';
 import toast from 'react-hot-toast';
-
-// Define the MetaTxForwarder ABI based on the provided contract
-const metaTxForwarderAbi = [
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_sender",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_receiver",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "_targetContract",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_nonce",
-        "type": "uint256"
-      }
-    ],
-    "name": "getMessageHash",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "_messageHash",
-        "type": "bytes32"
-      }
-    ],
-    "name": "getEthSignedMessageHash",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_sender",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_receiver",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "_targetContract",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_nonce",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes",
-        "name": "signature",
-        "type": "bytes"
-      }
-    ],
-    "name": "verify",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_sender",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_receiver",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "_targetContract",
-        "type": "address"
-      },
-      {
-        "internalType": "bytes",
-        "name": "signature",
-        "type": "bytes"
-      }
-    ],
-    "name": "executeMetaTransaction",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "nonces",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  }
-];
+import { metaTxForward } from '@/abi/metatxfoward';
 
 interface MetaTxProviderProps {
   recipientAddress: string;
   amount: string;
   decimals: number;
+  onProcessingChange?: (processing: boolean) => void;
 }
 
-export default function MetaTxProvider({ recipientAddress, amount, decimals }: MetaTxProviderProps) {
+export default function MetaTxProvider({ recipientAddress, amount, decimals, onProcessingChange }: MetaTxProviderProps) {
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -183,11 +27,13 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals }: M
   const [isApproving, setIsApproving] = useState(false);
   const [allowance, setAllowance] = useState<bigint>(BigInt(0));
 
+  // Use the correct MetaTxForwarder address and ABI from metaTxForward
+  const metaTxForwarderContract = metaTxForward.address as `0x${string}`;
+  const metaTxForwarderAbi = metaTxForward.abi;
+
   // Contract addresses - using the correct address for Lisk Sepolia testnet
   const idrxTokenContract = "0xD63029C1a3dA68b51c67c6D1DeC3DEe50D681661" as `0x${string}`; // ERC20 token
   const idrxPayContract = "0x5b7E831A950C03275d92493265219d71FB58b73B" as `0x${string}`; // Payment contract
-  // Use the correct MetaTxForwarder address from your deployment
-  const metaTxForwarderContract = "0xaDaD91104d4024D9374aFEBB28CdDad9fB1B95f3" as `0x${string}`;
 
   // Debug logs
   console.log('MetaTxProvider rendered with:', {
@@ -235,9 +81,20 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals }: M
         setDebugInfo(`Contract code check failed: ${error.message}`);
       }
       
-      // Try to call the nonces function
+      // Try to call the nonces function with a timeout
       console.log('Calling nonces function...');
-      const userNonce = await contract.read.nonces([address]) as bigint;
+      
+      // Create a promise that rejects after 10 seconds
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Nonce fetch timed out')), 10000);
+      });
+      
+      // Race the nonces call against the timeout
+      const userNonce = await Promise.race([
+        contract.read.nonces([address]) as Promise<bigint>,
+        timeoutPromise
+      ]);
+      
       console.log('Nonce fetched successfully:', userNonce.toString());
       setNonce(userNonce);
       setIsNonceLoaded(true);
@@ -281,8 +138,14 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals }: M
       });
       const allowanceValue = await tokenContract.read.allowance([
         address,
-        idrxPayContract,
+        metaTxForwarderContract,
       ]) as bigint;
+      console.log('Allowance checked:', {
+        address,
+        spender: metaTxForwarderContract,
+        allowance: allowanceValue.toString(),
+        amount,
+      });
       setAllowance(allowanceValue);
       if (allowanceValue >= parseEther(amount)) {
         setIsApproved(true);
@@ -293,11 +156,13 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals }: M
       setIsApproved(false);
       setAllowance(BigInt(0));
     }
-  }, [address, publicClient, idrxTokenContract, idrxPayContract, amount]);
+  }, [address, publicClient, idrxTokenContract, metaTxForwarderContract, amount]);
 
   useEffect(() => {
     checkAllowance();
-  }, [checkAllowance]);
+    setIsApproved(false);
+    setAllowance(BigInt(0));
+  }, [address]);
 
   // Re-check allowance whenever the amount changes
   useEffect(() => {
@@ -308,6 +173,9 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals }: M
   const handleApprove = async () => {
     if (!walletClient || !address) return;
     setIsApproving(true);
+    if (onProcessingChange) {
+      onProcessingChange(true);
+    }
     try {
       const tokenContract = getContract({
         address: idrxTokenContract,
@@ -315,20 +183,24 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals }: M
         client: walletClient,
       });
       const txHash = await tokenContract.write.approve([
-        idrxPayContract,
+        metaTxForwarderContract,
         parseEther(amount),
       ]);
       toast.success('Approval transaction sent! Waiting for confirmation...');
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash: txHash });
+        // Wait for the transaction to be mined before checking allowance
+        await checkAllowance();
       }
       toast.success('IDRX approved for meta-transactions!');
-      await checkAllowance(); // Await the allowance check to update state immediately
     } catch (err: any) {
       toast.error(err.message || 'Approval failed');
       setIsApproved(false);
     } finally {
       setIsApproving(false);
+      if (onProcessingChange) {
+        onProcessingChange(false);
+      }
     }
   };
 
@@ -349,6 +221,9 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals }: M
     }
 
     setIsLoading(true);
+    if (onProcessingChange) {
+      onProcessingChange(true);
+    }
     
     try {
       // 1. Get the current nonce if not already fetched
@@ -406,6 +281,8 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals }: M
         signatureLength: signature.length,
       });
       
+      toast.loading('Sending transaction to relay server...', { id: 'relay-loading' });
+      
       const response = await fetch('/api/relay', {
         method: 'POST',
         headers: {
@@ -426,18 +303,22 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals }: M
       console.log('Relay server response:', result);
 
       if (!response.ok) {
+        toast.error(result.error || 'Failed to execute meta-transaction', { id: 'relay-loading' });
         throw new Error(result.error || 'Failed to execute meta-transaction');
       }
 
-      toast.success(`Transaction sent! Hash: ${result.txHash}`);
+      toast.success(`Transaction sent! Hash: ${result.txHash}`, { id: 'relay-loading' });
       
       // 7. Increment the nonce for the next transaction
       setNonce(currentNonce + BigInt(1));
     } catch (error: any) {
       console.error('Meta-transaction error:', error);
-      toast.error(error.message || 'Failed to execute meta-transaction');
+      toast.error(error.message || 'Failed to execute meta-transaction', { id: 'relay-loading' });
     } finally {
       setIsLoading(false);
+      if (onProcessingChange) {
+        onProcessingChange(false);
+      }
     }
   };
 
@@ -488,6 +369,32 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals }: M
           Please approve the MetaTxForwarder contract to spend your IDRX before sending.
         </p>
       )}
+      
+      {/* Debug button */}
+      <div className="mt-4 text-center">
+        <button
+          onClick={() => {
+            console.log('Debug info:', {
+              address,
+              recipientAddress,
+              amount,
+              nonce: nonce?.toString(),
+              isNonceLoaded,
+              nonceError,
+              isApproved,
+              isApproving,
+              allowance: allowance.toString(),
+              metaTxForwarderContract,
+              idrxPayContract,
+              idrxTokenContract,
+            });
+            toast.success('Debug info logged to console');
+          }}
+          className="text-xs text-gray-500 hover:text-gray-700 underline"
+        >
+          Debug Info
+        </button>
+      </div>
     </div>
   );
 } 
