@@ -1,26 +1,17 @@
 'use client'
-import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { House } from "lucide-react";
 
 export default function Home() {
     const router = useRouter();
     return (
         <button 
             onClick={() => router.push('/homepage')}
-            className="text-black px-2 py-1.5 rounded-lg flex flex-col items-center 
-                      transition-all duration-200 hover:scale-105 active:scale-95
-                      text-xs sm:text-sm font-medium
-                      h-[56px] w-[56px] sm:w-auto sm:min-w-[80px]
-                      justify-center gap-0.5 shadow-sm hover:shadow-md hover:bg-blue-600 active:bg-blue-700">
-            <Image
-                src="/house.svg"
-                alt="Home navigation icon"
-                width={20}
-                height={20}
-                className="w-5 h-5"
-                priority
+            className="text-black flex flex-col items-center justify-center gap-0.5 w-16">
+            <House
+                className="w-4 h-4 sm:w-5 sm:h-5"
             />
-            <span>Home</span>
+            <span className="text-xs sm:text-sm">Home</span>
         </button>
     );
 } 

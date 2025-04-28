@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import axios from "axios";
 import { formatUnits } from "viem";
-import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, CirclePlusIcon, CheckIcon } from "lucide-react";
 import { useState } from "react";
 
 interface Transaction {
@@ -12,7 +12,7 @@ interface Transaction {
   to: string;
   value: string;
   timestamp: number;
-  type: "received" | "sent";
+  type: "received" | "sent" | "topup";
   tokenSymbol?: string;
   tokenDecimal?: string;
 }
@@ -30,16 +30,27 @@ const fetchTransactions = async (address: string): Promise<Transaction[]> => {
 
     // Check Etherscan-style response structure
     if (response.data && response.data.status === "1" && Array.isArray(response.data.result)) {
-      return response.data.result.map((tx: any) => ({
-        hash: tx.hash,
-        from: tx.from,
-        to: tx.to,
-        value: tx.value,
-        timestamp: parseInt(tx.timeStamp),
-        type: tx.to.toLowerCase() === address.toLowerCase() ? "received" : "sent",
-        tokenSymbol: tx.tokenSymbol,
-        tokenDecimal: tx.tokenDecimal,
-      }));
+      return response.data.result.map((tx: any) => {
+        // Determine transaction type
+        let type: "received" | "sent" | "topup" = "sent";
+        if (tx.to.toLowerCase() === address.toLowerCase()) {
+          // Check if it's a top-up (from a known faucet or contract)
+          const isTopup = tx.from.toLowerCase() === "0x0000000000000000000000000000000000000000" || 
+                          tx.from.toLowerCase() === "0x000000000000000000000000000000000000dead";
+          type = isTopup ? "topup" : "received";
+        }
+        
+        return {
+          hash: tx.hash,
+          from: tx.from,
+          to: tx.to,
+          value: tx.value,
+          timestamp: parseInt(tx.timeStamp),
+          type: type,
+          tokenSymbol: tx.tokenSymbol,
+          tokenDecimal: tx.tokenDecimal,
+        };
+      });
     } else if (response.data && response.data.status === "0") {
       console.log("No transactions found (API status 0):", response.data.message);
       return [];
@@ -68,12 +79,19 @@ const fetchTransactions = async (address: string): Promise<Transaction[]> => {
 export const TransactionHistory = () => {
   const { address, isConnected } = useAccount();
   const [showWeek, setShowWeek] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
 
   const { data: transactions, isLoading, error } = useQuery({
-    queryKey: ["idrxTokenTransactions", address, IDRX_TOKEN_ADDRESS], // More specific query key
+    queryKey: ["idrxTokenTransactions", address, IDRX_TOKEN_ADDRESS],
     queryFn: () => (address ? fetchTransactions(address) : Promise.resolve([])),
     enabled: !!address && isConnected,
   });
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedAddress(text);
+    setTimeout(() => setCopiedAddress(null), 2000);
+  };
 
   if (!isConnected) {
     return (
@@ -125,59 +143,87 @@ export const TransactionHistory = () => {
   }
 
   return (
-    <div className="w-full px-2 sm:px-0 mt-6 space-y-4 pb-20 sm:max-w-xl sm:mx-auto">
+    <div className="w-full px-2 sm:px-0 mt-6 space-y-4 pb-20 sm:max-w-xl mx-2 sm:mx-auto">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg sm:text-xl font-semibold">
           {showWeek ? "History (a week's transactions)" : "History"}
         </h2>
         <button
-          className="px-3 py-2 rounded-lg bg-[#7B3FE4] text-white font-medium hover:bg-[#6a2fd0] transition-all ml-2 text-sm sm:text-base"
+          className="px-3 py-2 rounded-lg bg-blue-500 text-white font-medium hover:bg-[#6a2fd0] transition-all ml-2 text-sm sm:text-base"
           onClick={() => setShowWeek((prev) => !prev)}
         >
           {showWeek ? "Show Latest 3" : "Show All"}
         </button>
       </div>
-      <div className="space-y-2">
+      <div>
         {displayTransactions.map((tx) => (
           <div
             key={tx.hash}
-            className="flex flex-row items-center justify-between p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm"
+            className="flex items-start space-x-3 sm:space-x-4 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-2"
           >
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              <div
-                className={`p-2 rounded-full ${
-                  tx.type === "received"
-                    ? "bg-green-100 text-green-600"
-                    : "bg-red-100 text-red-600"
-                }`}
-              >
-                {tx.type === "received" ? (
-                  <ArrowDownIcon className="h-5 w-5" />
-                ) : (
-                  <ArrowUpIcon className="h-5 w-5" />
-                )}
-              </div>
-              <div>
-                <p className="font-medium text-sm sm:text-base">
-                  {tx.type === "received" ? "Received" : "Sent"}
-                </p>
-                <p className="text-xs sm:text-sm text-gray-500">
-                  {new Date(tx.timestamp * 1000).toLocaleDateString()}
-                </p>
-              </div>
+            <div
+              className={`p-3 rounded-full mt-0.5 ${
+                tx.type === "received"
+                  ? "bg-green-100 text-green-600"
+                  : tx.type === "topup"
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-red-100 text-red-600"
+              }`}
+            >
+              {tx.type === "received" ? (
+                <ArrowDownIcon className="h-5 w-5" />
+              ) : tx.type === "topup" ? (
+                <CirclePlusIcon className="h-5 w-5" />
+              ) : (
+                <ArrowUpIcon className="h-5 w-5" />
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-sm sm:text-base">
+                {tx.type === "received" 
+                  ? (
+                    <span 
+                      className="cursor-pointer hover:underline flex items-center"
+                      onClick={() => copyToClipboard(tx.from)}
+                      title="Click to copy address"
+                    >
+                      From {tx.from.slice(0, 6)}...{tx.from.slice(-4)}
+                      {copiedAddress === tx.from && <CheckIcon className="h-3 w-3 ml-1 text-green-500" />}
+                    </span>
+                  )
+                  : tx.type === "topup" 
+                  ? "Top-up" 
+                  : (
+                    <span 
+                      className="cursor-pointer hover:underline flex items-center"
+                      onClick={() => copyToClipboard(tx.to)}
+                      title="Click to copy address"
+                    >
+                      To {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
+                      {copiedAddress === tx.to && <CheckIcon className="h-3 w-3 ml-1 text-green-500" />}
+                    </span>
+                  )}
+              </p>
+              <p className="text-xs sm:text-sm text-gray-500">
+                {new Date(tx.timestamp * 1000).toLocaleDateString()}
+              </p>
             </div>
             <div className="text-right">
-              <p className="font-medium text-sm sm:text-base">
-                {formatUnits(BigInt(tx.value), parseInt(tx.tokenDecimal || '18'))} {tx.tokenSymbol || 'IDRX'}
+              <p className={`font-medium text-sm sm:text-base ${
+                tx.type === "sent" 
+                  ? "text-red-600" 
+                  : tx.type === "received" 
+                    ? "text-green-600" 
+                    : tx.type === "topup" 
+                      ? "text-blue-700" 
+                      : ""
+              }`}>
+                {tx.type === "sent" 
+                  ? "-" 
+                  : (tx.type === "received" || tx.type === "topup") 
+                    ? "+" 
+                    : ""}{formatUnits(BigInt(tx.value), parseInt(tx.tokenDecimal || '18'))} {tx.tokenSymbol || 'IDRX'}
               </p>
-              <a
-                href={`https://sepolia-blockscout.lisk.com/tx/${tx.hash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs sm:text-sm text-blue-500 hover:underline"
-              >
-                View on Blockscout
-              </a>
             </div>
           </div>
         ))}

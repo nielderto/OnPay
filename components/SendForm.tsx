@@ -32,25 +32,25 @@ export default function SendForm() {
     setIsProcessing(processing);
   };
 
+  const isOwnAddress = recipientAddress.toLowerCase() === address?.toLowerCase();
+  const showError = (recipientAddress && !isValidAddress) || isOwnAddress;
+  const errorMessage = isOwnAddress 
+    ? "You cannot send tokens to your own wallet" 
+    : "Please enter a valid Ethereum address";
+
   if (!isConnected) {
     return (
-      <div className="p-4 text-center">
-        <p className="text-gray-600">Please connect your wallet to send tokens</p>
+      <div className="flex items-center justify-center p-8 bg-white rounded-lg shadow-md">
+        <p className="text-gray-600 text-lg">Please connect your wallet to send tokens</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6">Send IDRX (Gasless)</h2>
-      
-      <div className="mb-4">
-        <Balance />
-      </div>
-
-      <div className="space-y-4">
+    <div>
+      <div className="space-y-5">
         <div>
-          <label htmlFor="recipient" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="recipient" className="block text-sm font-medium text-gray-700 mb-2">
             Recipient Address
           </label>
           <input
@@ -59,20 +59,25 @@ export default function SendForm() {
             value={recipientAddress}
             onChange={handleAddressChange}
             placeholder="0x..."
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-              recipientAddress && !isValidAddress
-                ? 'border-red-500 focus:ring-red-500'
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+              showError
+                ? 'border-red-500 focus:ring-red-500 bg-red-50'
                 : 'border-gray-300 focus:ring-blue-500'
             }`}
             disabled={isProcessing}
           />
-          {recipientAddress && !isValidAddress && (
-            <p className="mt-1 text-sm text-red-500">Please enter a valid Ethereum address</p>
+          {showError && (
+            <p className="mt-2 text-sm text-red-500 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {errorMessage}
+            </p>
           )}
         </div>
 
         <div>
-          <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
             Amount (IDRX)
           </label>
           <input
@@ -81,17 +86,22 @@ export default function SendForm() {
             value={amount}
             onChange={handleAmountChange}
             placeholder="0.0"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
             disabled={isProcessing}
           />
         </div>
+        <div className="">
+        <p>Available: </p>
+        <Balance color="gray-400" />
+      </div>
+
 
         {isValidAddress && amount && parseFloat(amount) > 0 && (
-          <div className="mt-4 p-4 bg-blue-50 rounded-md">
-            <h3 className="text-lg font-medium text-blue-800 mb-2">Meta Transaction Flow</h3>
-            <ol className="list-decimal list-inside text-sm text-blue-700 space-y-1 mb-4">
-              <li>First, approve the IDRX token for the MetaTxForwarder contract</li>
-              <li>Then, send the transaction without paying gas fees</li>
+          <div className="mt-6 p-5 bg-blue-50 rounded-lg border border-blue-100">
+            <h3 className="text-lg font-medium text-blue-800 mb-3">Meta Transaction Flow</h3>
+            <ol className="list-decimal list-inside text-sm text-blue-700 space-y-2 mb-4">
+              <li className="pl-2">First, approve the IDRX token for the MetaTxForwarder contract</li>
+              <li className="pl-2">Then, send the transaction without paying gas fees</li>
             </ol>
             <MetaTxProvider
               recipientAddress={recipientAddress}

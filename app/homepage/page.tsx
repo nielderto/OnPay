@@ -1,6 +1,5 @@
 import Navbar from "@/components/Navbar";
 import DashboardCard from "@/components/DashboardCard";
-import EmptyHistory from "@/components/EmptyHistory";
 import { TransactionHistory } from "@/components/TransactionHistory";
 
 export default function Homepage(){
