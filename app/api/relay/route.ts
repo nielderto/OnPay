@@ -1,63 +1,52 @@
-import { NextResponse } from 'next/server';
-import { createWalletClient, http, parseEther } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { liskSepolia } from 'viem/chains';
-import { metaTxForward } from '@/abi/metatxfoward';
+import { NextResponse } from "next/server";
+import { relayMetaTransaction } from "@/lib/relayer";
 
-const relayerPrivateKey = process.env.RELAYER_PRIVATE_KEY;
-
-if (!relayerPrivateKey) {
-  throw new Error('RELAYER_PRIVATE_KEY is not set in environment variables');
-}
-
-const relayerAccount = privateKeyToAccount(process.env.RELAYER_PRIVATE_KEY as `0x${string}`);
-console.log(relayerAccount.address);
-
-const walletClient = createWalletClient({
-  account: relayerAccount,
-  chain: liskSepolia,
-  transport: http(),
-});
-
+// Handle POST request
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { from, to, amount, targetContract, nonce, signature } = body;
+    const { sender, receiver, amount, signature } = await request.json();
 
-    // Validate inputs
-    if (!from || !to || !amount || !targetContract || !nonce || !signature) {
+    console.log("Relay request received:", {
+      sender,
+      receiver,
+      amount,
+      signatureLength: signature.length
+    });
+
+    try {
+      const txHash = await relayMetaTransaction({ sender, receiver, amount, signature });
+      return NextResponse.json({ success: true, txHash });
+    } catch (relayError: any) {
+      console.error("Relayer execution failed:", relayError);
+
+      // Get more detailed error information
+      const errorMessage = relayError.message || "Unknown error";
+      const errorData = relayError.data || {};
+      const errorCode = relayError.code || "UNKNOWN_ERROR";
+
       return NextResponse.json(
-        { error: 'Missing required parameters' },
-        { status: 400 }
+        {
+          error: errorMessage,
+          errorData,
+          errorCode,
+          success: false,
+        },
+        { status: 500 }
       );
     }
-
-    console.log('Relay request received:', {
-      from,
-      to,
-      amount,
-      targetContract,
-      nonce,
-      signatureLength: signature.length,
-    });
-
-    console.log('About to send meta-tx with args:', { from, to, amount, targetContract, signature });
-    const txHash = await walletClient.writeContract({
-      address: metaTxForward.address as `0x${string}`,
-      abi: metaTxForward.abi,
-      functionName: 'executeMetaTransaction',
-      args: [from, to, BigInt(amount), targetContract, signature],
-    });
-    console.log('Meta-tx sent! Hash:', txHash);
-    return NextResponse.json({ txHash, success: true });
   } catch (error: any) {
-    console.error('Error in relay endpoint:', error);
+    console.error('Relay API error:', error);
     return NextResponse.json(
       {
-        error: error.message || 'Failed to execute meta transaction',
+        error: error.message || 'Relay server crashed',
         success: false,
       },
       { status: 500 }
     );
   }
+}
+
+// (Optional) Handle unsupported methods
+export async function GET() {
+  return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
 }
