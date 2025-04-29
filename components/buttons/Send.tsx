@@ -8,13 +8,9 @@ export default function Send(){
     return (
         <button 
         onClick={() => router.push('/send')}
-        className="text-black px-2 py-1.5 rounded-lg flex flex-col sm:flex-row items-center 
-                  transition-all duration-200 hover:scale-105 active:scale-95
-                  text-xs sm:text-sm font-medium
-                  h-[56px] w-[56px] sm:h-auto sm:w-auto sm:min-w-[80px]
-                  justify-center gap-0.5 shadow-sm hover:shadow-md sm:shadow-none sm:hover:shadow-none">
-            <SendHorizontal color="black"/>
-            <span>Send</span>
+        className="text-black flex flex-col items-center justify-center gap-0.5 w-16">
+            <SendHorizontal className="w-4 h-4 sm:w-5 sm:h-5" color="black"/>
+            <span className="text-xs sm:text-sm">Send</span>
         </button>
     )
 }
