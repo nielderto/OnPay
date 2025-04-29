@@ -17,8 +17,8 @@ export default function Navbar(){
 
             {/* Laptop Navbar */}
             <div className="hidden md:flex fixed top-0 left-0 right-0 justify-between items-center p-4 bg-white border-b border-gray-200 shadow-lg max-w-screen">
-                <Link href="/" className="text-xl font-bold hover:text-gray-600 transition-colors">OnPay</Link>
-                <div className="flex items-center gap-4">
+                <Link href="/" className="text-xl font-bold hover:text-gray-600 transition-colors ml-50">OnPay</Link>
+                <div className="flex items-center gap-4 mr-50">
                     <Logout />
                 </div>
             </div>
