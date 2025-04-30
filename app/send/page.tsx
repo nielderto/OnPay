@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import SendForm from "@/components/SendForm";
 import { SendHorizonal } from "lucide-react";
+import { Suspense } from "react";
 
 export default function SendPage() {
     return (
@@ -11,10 +12,14 @@ export default function SendPage() {
                     <SendHorizonal color="#0055FF"/>
                     <h1 className="text-2xl font-bold text-center mb-6 mt-2">Send IDRX</h1>
                     </div>
-                    <SendForm />
+                    <Suspense fallback={<div>Loading...</div>}>
+                        <SendForm />
+                    </Suspense>
                 </div>
             </div>
-            <Navbar />
+            <Suspense fallback={<div>Loading...</div>}>
+                <Navbar />
+            </Suspense>
         </div>
     );
 }

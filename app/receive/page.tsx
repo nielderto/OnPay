@@ -1,14 +1,18 @@
 import ReceiveFunds from "@/components/ReceiveFunds";
 import Navbar from "@/components/Navbar";
 import Address from "@/components/data/Address";
-
+import { Suspense } from "react";
 export default function ReceivePage() {
     return (
         <>
         <div className="flex flex-col items-center justify-center h-screen">
-            <ReceiveFunds />
+            <Suspense fallback={<div>Loading...</div>}>
+                <ReceiveFunds />
+            </Suspense>
         </div>
-        <Navbar />
+        <Suspense fallback={<div>Loading...</div>}>
+            <Navbar />
+        </Suspense>
         </>
     );
 }

@@ -28,7 +28,8 @@ export default function SendForm() {
     // Only allow numbers and one decimal point
     if (/^\d*\.?\d*$/.test(value)) {
       setAmount(value);
-      setAmountError(parseFloat(value) < 0.0001);
+      const numValue = parseFloat(value);
+      setAmountError(!isNaN(numValue) && numValue < 0.0001);
     }
   };
 

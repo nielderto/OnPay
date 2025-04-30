@@ -2,23 +2,33 @@
 import { useConnectModal } from "@xellar/kit";
 import { MoveDown, Lock, LogInIcon, UserRoundPlusIcon, SendIcon } from "lucide-react";
 import { useAccount } from "wagmi";
-import { useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { DM_Sans } from 'next/font/google';
 import { HyperText } from "@/components/magicui/hyper-text";
 import Image from 'next/image';
 import DevPage from "@/components/DevPage";
-
+import { redirect } from "next/navigation";
+import Loading from "../loading";
 const dmSans = DM_Sans({ subsets: ['latin'] });
 
 export default function LoginPage() {
     const { open } = useConnectModal();
     const { isConnected } = useAccount();
+    const [isRedirecting, setIsRedirecting] = useState(false);
 
     useEffect(() => {
         if (isConnected) {
-            window.location.href = '/homepage';
+            setIsRedirecting(true);
+            // Add a small delay to show the loading state
+            setTimeout(() => {
+                redirect('/homepage');
+            }, 500);
         }
     }, [isConnected]);
+
+    if (isRedirecting) {
+        return <Loading />;
+    }
     
     if(!isConnected){
     return (
@@ -94,8 +104,10 @@ export default function LoginPage() {
                         <h2 className={`${dmSans.className} text-5xl font-bold text-center mb-8`}>Developed By</h2>
                     </div>
                     <div className="flex flex-col items-center justify-center gap-4 md:flex-row">
+                        <Suspense fallback={<div>Loading...</div>}>
                         <DevPage name="Otneil Xander Susanto" role="Frontend Developer" imageUrl="/otniel.jpeg" socialMedia={["https://github.com/nielderto", "www.linkedin.com/in/nielderto", "https://x.com/XOtniel23798", "https://t.me/nielderto"]}/>
                         <DevPage name="Filbert Owen Susanto" role="Backend Developer" imageUrl="/oween.jpg" socialMedia={["https://github.com/FOwen123", "www.linkedin.com/in/filbert-owen-susanto-470564270", "https://t.me/haowen34", "https://instagram.com/filbertowen"]}/>
+                        </Suspense>
                     </div>
                 </div>
             </div>
