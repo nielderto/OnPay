@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import {Inter} from "next/font/google";
+import { Inter } from "next/font/google";
 import { Web3Provider } from "@/components/Web3Provider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 

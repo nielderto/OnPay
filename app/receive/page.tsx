@@ -1,6 +1,6 @@
 import ReceiveFunds from "@/components/ReceiveFunds";
 import Navbar from "@/components/Navbar";
-import Address from "@/components/Address";
+import Address from "@/components/data/Address";
 
 export default function ReceivePage() {
     return (

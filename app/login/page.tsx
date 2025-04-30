@@ -1,104 +1,109 @@
 'use client'
-import { useAccount } from "wagmi";
 import { useConnectModal } from "@xellar/kit";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import {FastForward, MessageCircleQuestion, Minus, MoveDown, Lock, MonitorCheck} from "lucide-react";
+import { MoveDown, Lock, LogInIcon, UserRoundPlusIcon, SendIcon } from "lucide-react";
+import { useAccount } from "wagmi";
+import { useEffect } from "react";
+import { DM_Sans } from 'next/font/google';
+import { HyperText } from "@/components/magicui/hyper-text";
+import Image from 'next/image';
+import DevPage from "@/components/DevPage";
 
-export default function LoginPage(){
-    const {isConnected} = useAccount();
-    const {open} = useConnectModal();
-    const router = useRouter();
-    const [mounted, setMounted] = useState(false);
+
+
+const dmSans = DM_Sans({ subsets: ['latin'] });
+
+export default function LoginPage() {
+    const { open } = useConnectModal();
+    const { isConnected } = useAccount();
 
     useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    useEffect(() => {
-        if (mounted && isConnected) {
-            router.push('/homepage');
+        if (isConnected) {
+            window.location.href = '/homepage';
         }
-    }, [isConnected, router, mounted]);
-
-    if (!mounted) {
-        return null;
-    }
-
-    if (!isConnected) {
-        return (
-            <>
-            <div className="flex flex-col items-center min-h-screen mt-32">
-                <div className="text-center">
-                    <h1 className="text-2xl font-bold">OnPay</h1>
-                    <p className="text-gray-400"> The easiest, <span className="italic">fastest</span>, <br />seamless, payment app for you</p>
+    }, [isConnected]);
+    
+    if(!isConnected){
+    return (
+        <>
+        <div className="flex flex-col items-center mt-5">
+        <h1 className={`text-2xl md:text-5xl lg:text-3xl font-bold mb-4 border-b-2 `}>OnPay</h1>
+        </div>
+            <div className="flex flex-col items-center justify-center min-h-screen px-4">
+                <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl mx-auto">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                        <div className="flex flex-row items-center justify-center gap-2">
+                    <Image src="/idrx.svg" alt="idrx" width={40} height={40} />
+                    <Image src="/lsk.svg" alt="lsk" width={40} height={40} />
+                    <Image src="/ether.svg" alt="idrx" width={40} height={40} />
+                        </div>
+                    <h2 className={`${dmSans.className} text-2xl md:text-4xl lg:text-6xl font-bold mb-8`}>
+                    Send Value, Not Gas — Powered by <HyperText>OnPay</HyperText>
+                    </h2>
+                    </div>
                     <button
                         onClick={open}
-                        className="bg-blue-500 text-white p-4 rounded-md hover:bg-blue-600 transition-colors"
-                    >
+                        className="bg-blue-500 text-white px-8 py-4 rounded-md hover:bg-blue-600 transition-colors text-lg md:text-l mb-5">
                         Login
                     </button>
                 </div>
 
-                <div className="mt-50">
-                <MoveDown color="#0055FF" />
+                <div className="mt-16">
+                    <MoveDown color="#0055FF" size={32} className="md:w-8 md:h-8 lg:w-10 lg:h-10" />
                 </div>
-            </div>
-
-            <div className="flex items-center justify-center">
-            <Minus color="#0055FF" size={100} />
             </div>
             
-            <div className="flex flex-col items-center justify center min-h-screen">
-                <div className="flex flex-row text-center">
-                    <h1 className="font-bold text-4xl"> Why OnPay</h1>
-                    <MessageCircleQuestion color="#0055FF"/>
+            <div className="flex flex-col items-center justify-center min-h-screen px-4">
+                <div className="flex flex-col items-center justify-center gap-4 mb-12">
+                    <h2 className="font-bold">How it works</h2>
+                    <h3 className={` ${dmSans.className} font-bold text-3xl md:text-4xl lg:text-5xl text-center`}>Payments done in <br />three steps</h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 px-4 max-w-6xl w-full">
-                    <div className="bg-blue-50 p-8 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl w-full">
+                    <div className="bg-gray-80 p-6 md:p-8 rounded-lg border-1 ">
                         <div className="flex flex-col items-center">
-                        <MonitorCheck color="#0055FF"/>
-                        <h2 className="text-xl font-semibold mb-4">Simplicity</h2>
+                            <LogInIcon color="#0055FF" className="w-10 h-10 md:w-12 md:h-12 mb-4" />
+                            <h2 className={` ${dmSans.className} text-xl md:text-2xl font-bold mb-4`}>Login</h2>
                         </div>
-                        <p className="text-gray-600">
-                            Experience hassle-free payments with our intuitive interface. 
-                            No complex setups or technical knowledge required. 
-                            Just connect and start sending money instantly.
+                        <p className="text-gray-600 text-center">
+                        Log in using your email, Google, or crypto wallet.
+                        New here? We'll set up your wallet instantly — no extra steps.
                         </p>
                     </div>
 
-                    <div className="bg-blue-50 p-8 rounded-lg">
+                    <div className="bg-gray-80 p-6 md:p-8 rounded-lg border-1 ">
                         <div className="flex flex-col items-center">
-                        <FastForward color="#0055FF"/>
-                        <h2 className="text-xl font-semibold mb-4">Quick</h2>
+                            <UserRoundPlusIcon color="#0055FF" className="w-10 h-10 md:w-12 md:h-12 mb-4" />
+                            <h2 className={`${dmSans.className} text-xl md:text-2xl font-bold mb-4`}>Add funds</h2>
                         </div>
-                        <p className="text-gray-600">
-                            Transfer funds in seconds, not hours. Our lightning-fast 
-                            blockchain technology ensures your transactions are processed 
-                            immediately with minimal fees.
+                        <p className="text-gray-600 text-center">
+                           Topup IDRX to your account using bank transfer (BNI, BRI, BCA, etc).
                         </p>
                     </div>
 
-                    <div className="bg-blue-50 p-8 rounded-lg">
+                    <div className="bg-gray-80 p-6 md:p-8 rounded-lg border-1 ">
                         <div className="flex flex-col items-center">
-                        <Lock color="#0055FF"/>
-                        <h2 className="text-xl font-semibold mb-4">Secure & Private</h2>
+                            <SendIcon color="#0055FF" className="w-10 h-10 md:w-12 md:h-12 mb-4" />
+                            <h2 className={`${dmSans.className} text-xl md:text-2xl font-bold mb-4`}>Send</h2>
                         </div>
-                        <p className="text-gray-600">
-                            Your security is our priority. Built on blockchain technology, 
-                            every transaction is encrypted and protected. Your financial 
-                            privacy remains in your control.
+                        <p className="text-gray-600 text-center">
+                           Make transactions using your IDRX and nothing else.
                         </p>
+                    </div>
+                </div>
+
+                <div className="w-screen bg-blue-500 text-white py-12 mt-70">
+                    <div className="max-w-6xl mx-auto px-4">
+                        <h2 className={`${dmSans.className} text-5xl font-bold text-center mb-8`}>Developed By</h2>
+                    </div>
+                    <div className="flex flex-row items-center justify-center gap-4">
+                        <DevPage name="Otneil Xander Susanto" role="Frontend Developer" imageUrl="/otniel.jpeg" socialMedia={["https://github.com/nielderto", "www.linkedin.com/in/nielderto", "https://x.com/XOtniel23798", "https://t.me/nielderto"]}/>
+                        <DevPage name="Filbert Owen Susanto" role="Backend Developer" imageUrl="/oween.jpg" socialMedia={["https://github.com/FOwen123", "www.linkedin.com/in/filbert-owen-susanto-470564270", "https://t.me/haowen34", "https://instagram.com/filbertowen"]}/>
                     </div>
                 </div>
             </div>
-
-            
-            </>
-        );
+        </>
+)
     }
-
     return (
         <div className="flex items-center justify-center min-h-screen">
             <div className="animate-pulse text-gray-500">Redirecting...</div>

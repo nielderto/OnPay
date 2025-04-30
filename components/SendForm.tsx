@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { isAddress } from 'viem';
 import MetaTxProvider from './MetaTxProvider';
-import Balance from './Balance';
+import Balance from './data/Balance';
 import toast from 'react-hot-toast';
 
 export default function SendForm() {

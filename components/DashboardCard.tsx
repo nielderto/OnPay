@@ -1,5 +1,5 @@
 'use client'
-import Balance from "@/components/Balance";
+import Balance from "@/components/data/Balance";
 import { HandCoins, SendHorizontal, CirclePlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";

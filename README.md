@@ -12,7 +12,7 @@ We believe crypto payments should be as simple as sending a message — and with
   Built on a robust blockchain network to ensure quick and safe transfers of IDRX tokens.
 
 - 🧠 **Effortless Wallets & Gas-Free Payments**
-No need to worry about creating a wallet—OnPay will generate one for you if you don’t have one. Plus, you can send and receive payments instantly with IDRX, without ever paying gas fees.
+  No need to worry about creating a wallet—OnPay will generate one for you if you don’t have one. Plus, you can send and receive payments instantly with IDRX, without ever paying gas fees.
 
 - 🎨 **Clean & Intuitive UI**  
   A sleek and modern interface designed for simplicity, accessibility, and a seamless user experience.
