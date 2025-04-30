@@ -8,7 +8,7 @@ export default function Logout() {
 
     const handleLogout = () => {
         disconnect();
-        redirect('/login');
+        redirect('/');
     };
 
     return (

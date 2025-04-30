@@ -2,6 +2,7 @@ import Navbar from "@/components/Navbar";
 import DashboardCard from "@/components/DashboardCard";
 import { TransactionHistory } from "@/components/TransactionHistory";
 import { Suspense } from "react";
+
 export default function Homepage(){
     return (
         <div>

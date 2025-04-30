@@ -3,7 +3,8 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import { Web3Provider } from "@/components/Web3Provider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-
+import { Suspense } from "react";
+import Loading from "./loading";
 
 const inter = Inter({
   subsets: ['latin']
@@ -21,11 +22,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${inter.className} antialiased bg-[#f0f0f0]`}>
+      <body className={`${inter.className} antialiased bg-[#f0f0f0]`}>
         <ErrorBoundary>
           <Web3Provider>
-            {children}
+            <Suspense fallback={<Loading />}>
+              {children}
+            </Suspense>
           </Web3Provider>
         </ErrorBoundary>
       </body>
