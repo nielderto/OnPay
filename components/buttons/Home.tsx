@@ -1,17 +1,16 @@
 'use client'
-import { useRouter } from "next/navigation";
-import { House } from "lucide-react";
+import Link from "next/link";
+import { Home as HomeIcon } from "lucide-react";
 
 export default function Home() {
-    const router = useRouter();
     return (
-        <button 
-            onClick={() => router.push('/homepage')}
+        <Link 
+            href="/"
             className="text-black flex flex-col items-center justify-center gap-0.5 w-16">
-            <House
+            <HomeIcon
                 className="w-4 h-4 sm:w-5 sm:h-5"
             />
             <span className="text-xs sm:text-sm">Home</span>
-        </button>
+        </Link>
     );
 } 

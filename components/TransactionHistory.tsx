@@ -79,7 +79,6 @@ const fetchTransactions = async (address: string): Promise<Transaction[]> => {
 export const TransactionHistory = () => {
   const { address, isConnected } = useAccount();
   const [showWeek, setShowWeek] = useState(false);
-  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
 
   const { data: transactions, isLoading, error } = useQuery({
     queryKey: ["idrxTokenTransactions", address, IDRX_TOKEN_ADDRESS],
@@ -87,10 +86,14 @@ export const TransactionHistory = () => {
     enabled: !!address && isConnected,
   });
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedAddress(text);
-    setTimeout(() => setCopiedAddress(null), 2000);
+  const openInExplorer = (hash: string) => {
+    console.log('Original hash:', hash);
+    // Ensure the hash is properly formatted
+    const formattedHash = hash.startsWith('0x') ? hash : `0x${hash}`;
+    console.log('Formatted hash:', formattedHash);
+    const explorerUrl = `https://sepolia-blockscout.lisk.com/tx/${formattedHash}`;
+    console.log('Explorer URL:', explorerUrl);
+    window.open(explorerUrl, '_blank');
   };
 
   if (!isConnected) {
@@ -161,70 +164,59 @@ export const TransactionHistory = () => {
             key={tx.hash}
             className="flex items-start space-x-3 sm:space-x-4 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-2"
           >
-            <div
-              className={`p-3 rounded-full mt-0.5 ${
-                tx.type === "received"
-                  ? "bg-green-100 text-green-600"
-                  : tx.type === "topup"
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-red-100 text-red-600"
-              }`}
+            <a
+              href={`https://sepolia-blockscout.lisk.com/tx/${tx.hash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-start space-x-3 sm:space-x-4 flex-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-              {tx.type === "received" ? (
-                <ArrowDownIcon className="h-5 w-5" />
-              ) : tx.type === "topup" ? (
-                <CirclePlusIcon className="h-5 w-5" />
-              ) : (
-                <ArrowUpIcon className="h-5 w-5" />
-              )}
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-sm sm:text-base">
-                {tx.type === "received" 
-                  ? (
-                    <span 
-                      className="cursor-pointer hover:underline flex items-center"
-                      onClick={() => copyToClipboard(tx.from)}
-                      title="Click to copy address"
-                    >
-                      From {tx.from.slice(0, 6)}...{tx.from.slice(-4)}
-                      {copiedAddress === tx.from && <CheckIcon className="h-3 w-3 ml-1 text-green-500" />}
-                    </span>
-                  )
-                  : tx.type === "topup" 
-                  ? "Top-up" 
-                  : (
-                    <span 
-                      className="cursor-pointer hover:underline flex items-center"
-                      onClick={() => copyToClipboard(tx.to)}
-                      title="Click to copy address"
-                    >
-                      To {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
-                      {copiedAddress === tx.to && <CheckIcon className="h-3 w-3 ml-1 text-green-500" />}
-                    </span>
-                  )}
-              </p>
-              <p className="text-xs sm:text-sm text-gray-500">
-                {new Date(tx.timestamp * 1000).toLocaleDateString()}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className={`font-medium text-sm sm:text-base ${
-                tx.type === "sent" 
-                  ? "text-red-600" 
-                  : tx.type === "received" 
-                    ? "text-green-600" 
+              <div
+                className={`p-3 rounded-full mt-0.5 ${
+                  tx.type === "received"
+                    ? "bg-green-100 text-green-600"
+                    : tx.type === "topup"
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-red-100 text-red-600"
+                }`}
+              >
+                {tx.type === "received" ? (
+                  <ArrowDownIcon className="h-5 w-5" />
+                ) : tx.type === "topup" ? (
+                  <CirclePlusIcon className="h-5 w-5" />
+                ) : (
+                  <ArrowUpIcon className="h-5 w-5" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm sm:text-base">
+                  {tx.type === "received" 
+                    ? `From ${tx.from.slice(0, 6)}...${tx.from.slice(-4)}`
                     : tx.type === "topup" 
-                      ? "text-blue-700" 
-                      : ""
-              }`}>
-                {tx.type === "sent" 
-                  ? "-" 
-                  : (tx.type === "received" || tx.type === "topup") 
-                    ? "+" 
-                    : ""}{formatUnits(BigInt(tx.value), parseInt(tx.tokenDecimal || '18'))} {tx.tokenSymbol || 'IDRX'}
-              </p>
-            </div>
+                    ? "Top-up" 
+                    : `To ${tx.to.slice(0, 6)}...${tx.to.slice(-4)}`}
+                </p>
+                <p className="text-xs sm:text-sm text-gray-500">
+                  {new Date(tx.timestamp * 1000).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className={`font-medium text-sm sm:text-base ${
+                  tx.type === "sent" 
+                    ? "text-red-600" 
+                    : tx.type === "received" 
+                      ? "text-green-600" 
+                      : tx.type === "topup" 
+                        ? "text-blue-700" 
+                        : ""
+                }`}>
+                  {tx.type === "sent" 
+                    ? "-" 
+                    : (tx.type === "received" || tx.type === "topup") 
+                      ? "+" 
+                      : ""}{formatUnits(BigInt(tx.value), parseInt(tx.tokenDecimal || '18'))} {tx.tokenSymbol || 'IDRX'}
+                </p>
+              </div>
+            </a>
           </div>
         ))}
       </div>

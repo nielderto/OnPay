@@ -12,9 +12,11 @@ interface MetaTxProviderProps {
   amount: string;
   decimals: number;
   onProcessingChange?: (processing: boolean) => void;
+  onSuccess?: () => void;
+  onError?: (error: string) => void;
 }
 
-export default function MetaTxProvider({ recipientAddress, amount, decimals, onProcessingChange }: MetaTxProviderProps) {
+export default function MetaTxProvider({ recipientAddress, amount, decimals, onProcessingChange, onSuccess, onError }: MetaTxProviderProps) {
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -301,22 +303,14 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals, onP
 
   // Handle the meta-transaction
   const handleMetaTx = async () => {
-    console.log('handleMetaTx called');
-
-    if (!address || !walletClient || !publicClient) {
-      console.error('Missing required data:', {
-        hasAddress: !!address,
-        hasWalletClient: !!walletClient,
-        hasPublicClient: !!publicClient,
-      });
-      toast.error('Wallet not connected or network not available');
+    if (!walletClient || !address || !nonce || !publicClient) {
+      console.error('Missing required data for meta transaction');
+      onError?.('Missing required data for meta transaction');
       return;
     }
 
     setIsLoading(true);
-    if (onProcessingChange) {
-      onProcessingChange(true);
-    }
+    onProcessingChange?.(true);
 
     try {
       // 1. Fetch nonce cleanly
@@ -372,11 +366,15 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals, onP
 
         // Check for specific error cases
         if (errorMessage.includes('transfer amount exceeds balance')) {
-          errorMessage = 'Transaction failed: Your wallet doesn\'t have enough IDRX tokens';
+          errorMessage = 'Insufficient IDRX balance';
         } else if (errorMessage.includes('insufficient allowance')) {
-          errorMessage = 'Transaction failed: You need to approve the IDRX Payment Contract first';
+          errorMessage = 'Please approve the IDRX Payment Contract first';
         } else if (errorMessage.includes('insufficient funds') || errorMessage.includes('INSUFFICIENT_FUNDS')) {
-          errorMessage = 'Transaction failed: The relayer needs LISK tokens to pay for gas fees';
+          errorMessage = 'The relayer needs LISK tokens to pay for gas fees';
+        } else if (errorMessage.includes('amount too small')) {
+          errorMessage = 'Amount is too small. Please enter a larger amount';
+        } else if (errorMessage.includes('invalid amount')) {
+          errorMessage = 'Please enter a valid amount';
         }
 
         toast.error(errorMessage, { id: 'relay-loading' });
@@ -384,25 +382,30 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals, onP
       }
 
       toast.success(`Transaction Sent! Hash: ${result.txHash}`, { id: 'relay-loading' });
-    } catch (error: any) {
-      console.error('Meta-tx error:', error);
 
-      // Format the error message for better readability
-      let errorMessage = error.message || 'Meta-tx failed';
-      if (errorMessage.includes('transfer amount exceeds balance')) {
-        errorMessage = 'Your wallet doesn\'t have enough IDRX tokens';
-      } else if (errorMessage.includes('insufficient allowance')) {
-        errorMessage = 'You need to approve the IDRX Payment Contract first';
-      } else if (errorMessage.includes('insufficient funds') || errorMessage.includes('INSUFFICIENT_FUNDS')) {
-        errorMessage = 'The relayer needs LISK tokens to pay for gas fees';
+      // On success
+      onSuccess?.();
+    } catch (error: any) {
+      console.error('Meta transaction failed:', error);
+      let errorMsg = error.message || 'Transaction failed';
+      
+      // Format error messages to be more user-friendly
+      if (errorMsg.includes('transfer amount exceeds balance')) {
+        errorMsg = 'Insufficient IDRX balance';
+      } else if (errorMsg.includes('insufficient allowance')) {
+        errorMsg = 'Please approve the IDRX Payment Contract first';
+      } else if (errorMsg.includes('insufficient funds') || errorMsg.includes('INSUFFICIENT_FUNDS')) {
+        errorMsg = 'The relayer needs LISK tokens to pay for gas fees';
+      } else if (errorMsg.includes('amount too small')) {
+        errorMsg = 'Amount is too small. Please enter a larger amount';
+      } else if (errorMsg.includes('invalid amount')) {
+        errorMsg = 'Please enter a valid amount';
       }
 
-      toast.error(errorMessage, { id: 'relay-loading' });
+      onError?.(errorMsg);
     } finally {
       setIsLoading(false);
-      if (onProcessingChange) {
-        onProcessingChange(false);
-      }
+      onProcessingChange?.(false);
     }
   };
 

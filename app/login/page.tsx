@@ -8,8 +8,6 @@ import { HyperText } from "@/components/magicui/hyper-text";
 import Image from 'next/image';
 import DevPage from "@/components/DevPage";
 
-
-
 const dmSans = DM_Sans({ subsets: ['latin'] });
 
 export default function LoginPage() {
@@ -95,7 +93,7 @@ export default function LoginPage() {
                     <div className="max-w-6xl mx-auto px-4">
                         <h2 className={`${dmSans.className} text-5xl font-bold text-center mb-8`}>Developed By</h2>
                     </div>
-                    <div className="flex flex-row items-center justify-center gap-4">
+                    <div className="flex flex-col items-center justify-center gap-4 md:flex-row">
                         <DevPage name="Otneil Xander Susanto" role="Frontend Developer" imageUrl="/otniel.jpeg" socialMedia={["https://github.com/nielderto", "www.linkedin.com/in/nielderto", "https://x.com/XOtniel23798", "https://t.me/nielderto"]}/>
                         <DevPage name="Filbert Owen Susanto" role="Backend Developer" imageUrl="/oween.jpg" socialMedia={["https://github.com/FOwen123", "www.linkedin.com/in/filbert-owen-susanto-470564270", "https://t.me/haowen34", "https://instagram.com/filbertowen"]}/>
                     </div>
@@ -104,9 +102,4 @@ export default function LoginPage() {
         </>
 )
     }
-    return (
-        <div className="flex items-center justify-center min-h-screen">
-            <div className="animate-pulse text-gray-500">Redirecting...</div>
-        </div>
-    );
 }

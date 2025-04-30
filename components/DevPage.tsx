@@ -10,7 +10,7 @@ interface ProfileCardProps {
 
 export default function DevPage({ name, role, imageUrl, showActions = true, socialMedia = [] }: ProfileCardProps) {
     return (
-        <div className="w-full max-w-sm bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700 pt-16">
+        <div className="w-full max-w-sm bg-white border border-gray-200 rounded-2xl shadow-sm pt-16">
         <div className="flex flex-col items-center pb-10">
             <img className="w-32 h-32 mb-3 rounded-full shadow-lg" src={imageUrl} alt={`${name} profile`}/>
             <h5 className="mb-1 text-xl font-medium text-black">{name}</h5>

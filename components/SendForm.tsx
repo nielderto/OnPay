@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi';
 import { isAddress } from 'viem';
 import MetaTxProvider from './MetaTxProvider';
 import Balance from './data/Balance';
-import toast from 'react-hot-toast';
+import { AnimatedList } from "@/components/magicui/animated-list";
 
 export default function SendForm() {
   const { address, isConnected } = useAccount();
@@ -13,6 +13,8 @@ export default function SendForm() {
   const [amount, setAmount] = useState('');
   const [isValidAddress, setIsValidAddress] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [transactionStatus, setTransactionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newAddress = e.target.value;
@@ -32,9 +34,20 @@ export default function SendForm() {
     setIsProcessing(processing);
   };
 
+  const handleTransactionSuccess = () => {
+    setTransactionStatus('success');
+    setRecipientAddress('');
+    setAmount('');
+  };
+
+  const handleTransactionError = (error: string) => {
+    setTransactionStatus('error');
+    setErrorMessage(error);
+  };
+
   const isOwnAddress = recipientAddress.toLowerCase() === address?.toLowerCase();
   const showError = (recipientAddress && !isValidAddress) || isOwnAddress;
-  const errorMessage = isOwnAddress 
+  const addressErrorMessage = isOwnAddress 
     ? "You cannot send tokens to your own wallet" 
     : "Please enter a valid Ethereum address";
 
@@ -48,6 +61,30 @@ export default function SendForm() {
 
   return (
     <div>
+      {transactionStatus !== 'idle' && (
+        <AnimatedList className="mb-4">
+          {transactionStatus === 'success' && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg shadow-sm">
+              <div className="flex items-center">
+                <svg className="h-5 w-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <p className="text-green-800 font-medium">Transaction successful!</p>
+              </div>
+            </div>
+          )}
+          {transactionStatus === 'error' && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg shadow-sm">
+              <div className="flex items-center">
+                <svg className="h-5 w-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <p className="text-red-800 font-medium">{errorMessage}</p>
+              </div>
+            </div>
+          )}
+        </AnimatedList>
+      )}
       <div className="space-y-4 sm:space-y-5">
         <div>
           <label htmlFor="recipient" className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
@@ -71,7 +108,7 @@ export default function SendForm() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
-              {errorMessage}
+              {addressErrorMessage}
             </p>
           )}
         </div>
@@ -107,6 +144,8 @@ export default function SendForm() {
               amount={amount}
               decimals={18}
               onProcessingChange={handleProcessingChange}
+              onSuccess={handleTransactionSuccess}
+              onError={handleTransactionError}
             />
           </div>
         )}
