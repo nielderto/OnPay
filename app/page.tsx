@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+
 export default function Home() {
-redirect("/login");
+  // Add a small delay to allow loading state to show
+  return redirect("/login");
 }

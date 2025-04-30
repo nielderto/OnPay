@@ -152,7 +152,7 @@ export const TransactionHistory = () => {
           {showWeek ? "History (a week's transactions)" : "History"}
         </h2>
         <button
-          className="px-3 py-2 rounded-lg bg-blue-500 text-white font-medium hover:bg-[#6a2fd0] transition-all ml-2 text-sm sm:text-base"
+          className="px-3 py-2 rounded-lg bg-blue-500 text-white font-medium hover:bg-blue-600 transition-all ml-2 text-sm sm:text-base"
           onClick={() => setShowWeek((prev) => !prev)}
         >
           {showWeek ? "Show Latest 3" : "Show All"}

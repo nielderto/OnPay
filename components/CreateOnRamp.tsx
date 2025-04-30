@@ -149,9 +149,9 @@ const CreateOnRamp: React.FC = () => {
         }
     };
     return (
-        <div className="container mx-auto p-4 max-w-4xl min-h-screen pb-20">
-            <div className="flex flex-col items-center mb-6 sm:mb-8 lg:hidden:fixed top-0 left-0 right-0 bg-white z-10 p-4 border-b">
-                <div className="flex flex-row gap-4 items-center lg:mt-50 ">
+        <div className="container mx-auto p-4 max-w-4xl min-h-screen flex flex-col items-center justify-center">
+            <div className="flex flex-col items-center justify-center mb-6 sm:mb-8 lg:hidden:fixed top-0 left-0 right-0 z-10 p-4 border-b">
+                <div className="flex flex-row gap-4 items-center justify-center">
                     <Image src="./idrx.svg" alt="IDRX image" width={40} height={40} />
                     <h1 className="text-xl md:text-2xl font-bold">Topup IDRX</h1>
                 </div>

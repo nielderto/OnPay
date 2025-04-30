@@ -17,7 +17,7 @@ export default function DevPage({ name, role, imageUrl, showActions = true, soci
             <span className="text-sm text-gray-500">{role}</span>
             {showActions && (
                 <div className="flex mt-4 md:mt-6 border-t-1">
-                    {socialMedia.map((url, index) => (
+                    {socialMedia.map((url: string, index: number) => (
                         <SocialIcon key={index} url={url} bgColor="transparent" fgColor="black" />
                     ))}
                 </div>

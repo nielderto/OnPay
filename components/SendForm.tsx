@@ -15,6 +15,7 @@ export default function SendForm() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [amountError, setAmountError] = useState(false);
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newAddress = e.target.value;
@@ -27,6 +28,7 @@ export default function SendForm() {
     // Only allow numbers and one decimal point
     if (/^\d*\.?\d*$/.test(value)) {
       setAmount(value);
+      setAmountError(parseFloat(value) < 0.0001);
     }
   };
 
@@ -123,9 +125,14 @@ export default function SendForm() {
             value={amount}
             onChange={handleAmountChange}
             placeholder="0.0"
-            className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+            className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+              amountError ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-300'
+            }`}
             disabled={isProcessing}
           />
+          {amountError && (
+            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-red-500">Amount must be at least 0.0001 IDRX</p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <p className="text-sm sm:text-base">Available: </p>
