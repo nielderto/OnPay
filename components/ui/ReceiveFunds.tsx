@@ -14,7 +14,7 @@ const ReceiveFunds: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col items-center p-4">
+        <div className="flex flex-col items-center p-4 bg-white rounded-3xl">
             <h2 className="text-xl font-bold mb-4">Receive Funds</h2>
             <div className="bg-white p-4 rounded-lg cursor-pointer" onClick={handleScan}>
                 <QRCode 

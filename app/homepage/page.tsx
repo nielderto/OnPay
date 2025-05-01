@@ -1,6 +1,6 @@
-import Navbar from "@/components/Navbar";
-import DashboardCard from "@/components/DashboardCard";
-import { TransactionHistory } from "@/components/TransactionHistory";
+import Navbar from "@/components/buttons/Navbar";
+import DashboardCard from "@/components/ui/DashboardCard";
+import { TransactionHistory } from "@/components/data/TransactionHistory";
 import { Suspense } from "react";
 
 export default function Homepage(){

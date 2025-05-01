@@ -1,9 +1,8 @@
-import Logout from "./buttons/Logout";
-import SendFunds from "./buttons/Send";
-import Topup from "./buttons/Topup";
-import Home from "./buttons/Home";
+import Logout from "./Logout";
+import SendFunds from "./Send";
+import Topup from "./Topup";
+import Home from "./Home";
 import Link from "next/link";
-import { Suspense } from "react";
 
 export default function Navbar(){
     return (
@@ -18,7 +17,7 @@ export default function Navbar(){
             </div>
 
             {/* Laptop Navbar */}
-            <div className="hidden md:flex fixed top-0 left-0 right-0 justify-between items-center p-4 bg-white/40 backdrop-blur-sm border-b border-gray-200/50 shadow-lg max-w-[60%] mx-auto rounded-3xl mt-2">
+            <div className="hidden md:flex fixed top-0 z-50 left-0 right-0 justify-between items-center p-4 bg-white/40 backdrop-blur-sm border-b border-gray-200/50 shadow-lg max-w-[60%] mx-auto rounded-3xl mt-4">
                 <Link 
                     href="/homepage" 
                     className="text-xl font-bold hover:text-gray-600 transition-colors"

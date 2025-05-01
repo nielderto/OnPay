@@ -1,5 +1,5 @@
-import ReceiveFunds from "@/components/ReceiveFunds";
-import Navbar from "@/components/Navbar";
+import ReceiveFunds from "@/components/ui/ReceiveFunds";
+import Navbar from "@/components/buttons/Navbar";
 import Address from "@/components/data/Address";
 import { Suspense } from "react";
 export default function ReceivePage() {

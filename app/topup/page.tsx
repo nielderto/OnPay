@@ -1,5 +1,5 @@
-import Navbar from "@/components/Navbar";
-import CreateOnRamp from "@/components/CreateOnRamp";
+import Navbar from "@/components/buttons/Navbar";
+import CreateOnRamp from "@/components/ui/CreateOnRamp";
 import { Suspense } from "react";
 
 export default function TopupPage(){

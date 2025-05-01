@@ -1,5 +1,5 @@
-import Navbar from "@/components/Navbar";
-import SendForm from "@/components/SendForm";
+import Navbar from "@/components/buttons/Navbar";
+import SendForm from "@/components/ui/SendForm";
 import { SendHorizonal } from "lucide-react";
 import { Suspense } from "react";
 

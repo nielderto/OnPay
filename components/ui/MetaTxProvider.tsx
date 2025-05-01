@@ -30,7 +30,14 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals, onP
   const [allowance, setAllowance] = useState<bigint>(BigInt(0));
   const [balance, setBalance] = useState<bigint>(BigInt(0));
   const [hasEnoughTokens, setHasEnoughTokens] = useState(false);
-  const [tokenDecimals, setTokenDecimals] = useState<number>(2); // Initialize with 2 decimals
+  const [tokenDecimals, setTokenDecimals] = useState<number>(2);
+  const [lastTransactionHash, setLastTransactionHash] = useState<string | null>(null);
+
+  // Reset approval state when amount or recipient changes
+  useEffect(() => {
+    setIsApproved(false);
+    setAllowance(BigInt(0));
+  }, [amount, recipientAddress]);
 
   // Use the correct MetaTxForwarder address and ABI from metaTxForward
   const metaTxForwarderContract = metaTxForward.address as `0x${string}`;
@@ -266,30 +273,59 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals, onP
 
   // Approve function
   const handleApprove = async () => {
-    if (!walletClient || !address) return;
+    if (!walletClient || !address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
     setIsApproving(true);
     if (onProcessingChange) {
       onProcessingChange(true);
     }
 
     try {
-      const { writeContract } = await import('viem/actions');
+      // Always set isApproved to false before starting approval
+      setIsApproved(false);
 
-      const txHash = await walletClient.writeContract({
+      // Create the contract instance
+      const tokenContract = getContract({
         address: idrxTokenContract,
         abi: erc20Abi,
-        functionName: "approve",
-        args: [idrxPayContract, parseUnits(amount, tokenDecimals)],
+        client: walletClient,
       });
 
-      toast.success('Approval tx sent! Waiting for confirmation...');
+      // Calculate the amount to approve
+      const amountToApprove = parseUnits(amount, tokenDecimals);
+
+      console.log('Attempting to approve:', {
+        spender: idrxPayContract,
+        amount: amountToApprove.toString(),
+      });
+
+      // Call the approve function
+      const txHash = await tokenContract.write.approve([
+        idrxPayContract,
+        amountToApprove,
+      ]);
+
+      console.log('Approval transaction hash:', txHash);
+      toast.success('Please approve the transaction in MetaMask...');
+
       if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: txHash });
-        // Wait for the transaction to be mined before checking allowance
-        await checkAllowance();
+        const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+        console.log('Approval transaction receipt:', receipt);
+
+        // Only set approved to true after successful transaction
+        if (receipt.status === 'success') {
+          setIsApproved(true);
+          toast.success('Approval confirmed! You can now send the transaction.');
+        } else {
+          setIsApproved(false);
+          throw new Error('Approval transaction failed');
+        }
       }
-      toast.success('Approval confirmed!');
     } catch (err: any) {
+      console.error('Approval error:', err);
       toast.error(err.message || 'Approval failed');
       setIsApproved(false);
     } finally {
@@ -300,12 +336,17 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals, onP
     }
   };
 
-
   // Handle the meta-transaction
   const handleMetaTx = async () => {
     if (!walletClient || !address || !nonce || !publicClient) {
       console.error('Missing required data for meta transaction');
       onError?.('Missing required data for meta transaction');
+      return;
+    }
+
+    // Always check approval status before proceeding
+    if (!isApproved) {
+      toast.error('Please approve the transaction first');
       return;
     }
 
@@ -382,6 +423,7 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals, onP
       }
 
       toast.success(`Transaction Sent! Hash: ${result.txHash}`, { id: 'relay-loading' });
+      setLastTransactionHash(result.txHash);
 
       // On success
       onSuccess?.();
@@ -409,45 +451,38 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals, onP
     }
   };
 
-
   return (
     <div className="mt-4">
       <div className="mb-2">
-        <div className="text-xs text-gray-500 text-center">
-          Current Allowance: {allowance.toString()} wei
-        </div>
-        <div className="text-xs text-gray-500 text-center mb-1">
-          Current Balance: {balance.toString()} wei (Token Decimals: {tokenDecimals})
-        </div>
-        <div className="text-xs text-amber-600 text-center mb-2">
-          <p>To successfully send meta-transactions:</p>
-          <ol className="list-decimal list-inside text-left px-4 mt-1">
-            <li>Your wallet must have enough IDRX tokens to send</li>
-            <li>You must approve the Payment Contract to spend your tokens</li>
-            <li>The relayer must have LSK tokens to pay for gas</li>
-          </ol>
+        <div className="text-sm text-gray-700 text-center mb-4">
+          <p className="font-bold text-2xl ">Transaction Details:</p>
+          <div className="mt-2">
+            <p>Recipient will receive: {amount} IDRX</p>
+            <p>Transaction fee (1%): {(Number(amount) * 0.01).toFixed(2)} IDRX</p>
+            <p className="font-bold">Total amount to pay: {(Number(amount) * 1.01).toFixed(2)} IDRX</p>
+          </div>
         </div>
         <button
-          onClick={handleApprove}
-          disabled={isApproving || isApproved || !walletClient}
-          className={`w-full py-2 px-4 rounded-md text-white font-medium mb-2 ${isApproving || isApproved || !walletClient
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-yellow-600 hover:bg-yellow-700'
-            }`}
+          onClick={isApproved ? handleMetaTx : handleApprove}
+          disabled={isLoading || !isNonceLoaded || (isApproved && !hasEnoughTokens)}
+          className={`w-full py-2 px-4 rounded-md text-white font-medium ${
+            isLoading || !isNonceLoaded || (isApproved && !hasEnoughTokens)
+              ? 'bg-gray-400 cursor-not-allowed'
+              : isApproved
+                ? 'bg-blue-600 hover:bg-blue-700'
+                : 'bg-yellow-600 hover:bg-yellow-700'
+          }`}
         >
-          {isApproving ? 'Approving...' : isApproved ? 'Approved' : 'Approve IDRX Payment Contract'}
+          {isLoading 
+            ? 'Processing...' 
+            : isApproving 
+              ? 'Approving...' 
+              : isApproved 
+                ? 'Send IDRX'
+                : 'Approve'
+          }
         </button>
       </div>
-      <button
-        onClick={handleMetaTx}
-        disabled={isLoading || !isNonceLoaded || !isApproved}
-        className={`w-full py-2 px-4 rounded-md text-white font-medium ${isLoading || !isNonceLoaded || !isApproved
-          ? 'bg-gray-400 cursor-not-allowed'
-          : 'bg-blue-600 hover:bg-blue-700'
-          }`}
-      >
-        {isLoading ? 'Processing...' : isNonceLoaded ? 'Send IDRX (No Gas Fee)' : 'Loading...'}
-      </button>
       {!hasEnoughTokens && (
         <p className="mt-2 text-sm text-red-500 text-center">
           Insufficient IDRX balance for this transaction (includes 1% fee)
@@ -467,39 +502,6 @@ export default function MetaTxProvider({ recipientAddress, amount, decimals, onP
       <p className="mt-2 text-sm text-gray-500 text-center">
         This transaction will be processed without gas fees
       </p>
-      {!isApproved && hasEnoughTokens && (
-        <p className="mt-2 text-sm text-yellow-600 text-center">
-          Please approve the IDRX Payment Contract to spend your IDRX before sending.
-        </p>
-      )}
-
-      {/* Debug button */}
-      <div className="mt-4 text-center">
-        <button
-          onClick={() => {
-            console.log('Debug info:', {
-              address,
-              recipientAddress,
-              amount,
-              nonce: nonce?.toString(),
-              isNonceLoaded,
-              nonceError,
-              isApproved,
-              isApproving,
-              allowance: allowance.toString(),
-              balance: balance.toString(),
-              hasEnoughTokens,
-              metaTxForwarderContract,
-              idrxPayContract,
-              idrxTokenContract,
-            });
-            toast.success('Debug info logged to console');
-          }}
-          className="text-xs text-gray-500 hover:text-gray-700 underline"
-        >
-          Debug Info
-        </button>
-      </div>
     </div>
   );
 } 

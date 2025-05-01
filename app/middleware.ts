@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server'
 
 // Define which routes you want the middleware to run on
 export const config = {
-  matcher: ['/', '/homepage', '/login', '/dashboard/:path*'], // Add all protected routes
+  matcher: ['/', '/homepage', '/login', '/send', '/receive', '/topup', '/dashboard/:path*'], // Add all protected routes
 }
 
 export function middleware(request: NextRequest) {
@@ -17,7 +17,11 @@ export function middleware(request: NextRequest) {
   }
 
   // Protect routes that require authentication
-  if (pathname.startsWith('/homepage') || pathname.startsWith('/dashboard')) {
+  if (pathname.startsWith('/homepage') || 
+      pathname.startsWith('/dashboard') || 
+      pathname.startsWith('/send') || 
+      pathname.startsWith('/receive') || 
+      pathname.startsWith('/topup')) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL('/login', request.url));
     }

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { isAddress } from 'viem';
 import MetaTxProvider from './MetaTxProvider';
-import Balance from './data/Balance';
+import Balance from '../data/Balance';
 import { AnimatedList } from "@/components/magicui/animated-list";
 
 export default function SendForm() {
@@ -142,11 +142,6 @@ export default function SendForm() {
 
         {isValidAddress && amount && parseFloat(amount) > 0 && (
           <div className="mt-4 sm:mt-6 p-3 sm:p-5 bg-blue-50 rounded-lg border border-blue-100">
-            <h3 className="text-base sm:text-lg font-medium text-blue-800 mb-2 sm:mb-3">Meta Transaction Flow</h3>
-            <ol className="list-decimal list-inside text-xs sm:text-sm text-blue-700 space-y-1 sm:space-y-2 mb-3 sm:mb-4">
-              <li className="pl-2">First, approve the IDRX token for the MetaTxForwarder contract</li>
-              <li className="pl-2">Then, send the transaction without paying gas fees</li>
-            </ol>
             <MetaTxProvider
               recipientAddress={recipientAddress}
               amount={amount}

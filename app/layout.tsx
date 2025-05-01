@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} antialiased bg-[#f0f0f0]`}>
+      <body className={`${inter.className} antialiased bg-[#f0f0f0] suppressHydrationWarning`}>
         <ErrorBoundary>
           <Web3Provider>
             <Suspense fallback={<Loading />}>

@@ -1,4 +1,4 @@
-import LoginLogic from "@/components/LoginLogic";
+import LoginLogic from "@/components/ui/LoginLogic";
 import { Suspense } from "react";
 
 export default function LoginPage() {

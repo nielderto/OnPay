@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { createSignature } from '../app/api/transaction/createSignature';
+import { createSignature } from '@/app/api/transaction/createSignature';
 import { useAccount } from 'wagmi';
 import Image from 'next/image';
 import { Divide } from 'lucide-react';

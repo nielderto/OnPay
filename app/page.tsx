@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { DM_Sans } from 'next/font/google';
-import { MoveDown, Lock, LogInIcon, UserRoundPlusIcon, SendIcon } from "lucide-react";
+import { MoveDown, LogInIcon, UserRoundPlusIcon, SendIcon } from "lucide-react";
 import Image from 'next/image';
 import { HyperText } from "@/components/magicui/hyper-text";
-import DevPage from "@/components/DevPage";
+import DevPage from "@/components/cards/DevPage";
 import Link from "next/link";
 
 const dmSans = DM_Sans({ subsets: ['latin'] });
