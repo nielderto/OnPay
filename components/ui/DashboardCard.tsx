@@ -81,7 +81,6 @@ export default function DashboardCard() {
             <Link
               href="/send"
               className="flex flex-col items-center py-6 hover:bg-blue-100 transition-colors cursor-pointer group"
-              prefetch={false}
             >
               <div className="flex items-center justify-center w-10 h-10 mb-2 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
                 <Send className="w-5 h-5 text-blue-600" />
@@ -91,7 +90,6 @@ export default function DashboardCard() {
             <Link
               href="/receive"
               className="flex flex-col items-center py-6 hover:bg-blue-100 transition-colors cursor-pointer group"
-              prefetch={false}
             >
               <div className="flex items-center justify-center w-10 h-10 mb-2 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
                 <QrCode className="w-5 h-5 text-blue-600" />
@@ -101,7 +99,6 @@ export default function DashboardCard() {
             <Link
               href="/topup"
               className="flex flex-col items-center py-6 hover:bg-blue-100 transition-colors cursor-pointer group"
-              prefetch={false}
             >
               <div className="flex items-center justify-center w-10 h-10 mb-2 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
                 <Plus className="w-5 h-5 text-blue-600" />
