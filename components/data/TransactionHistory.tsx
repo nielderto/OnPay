@@ -54,7 +54,10 @@ const fetchTransactions = async (address: string): Promise<Transaction[]> => {
 
 const formatDate = (timestamp: number) => {
   const date = new Date(timestamp * 1000);
-  return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} • ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  return {
+    full: `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} • ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
+    mobile: `${date.getDate()}/${date.getMonth() + 1} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  };
 };
 
 export const TransactionHistory = () => {
@@ -150,7 +153,7 @@ export const TransactionHistory = () => {
       <div className="space-y-4">
         {displayedTransactions.map((tx) => (
           <div key={tx.hash} className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className={`p-2 rounded-full ${tx.type === "received" ? "bg-green-100" : "bg-red-100"}`}>
                   <Send className={`h-5 w-5 ${tx.type === "received" ? "text-green-600 rotate-180" : "text-red-600"}`} />
@@ -169,12 +172,13 @@ export const TransactionHistory = () => {
                   </span>
                 </div>
               </div>
-              <div className="flex flex-col items-end">
+              <div className="flex flex-col items-start sm:items-end">
                 <span className={`font-medium ${tx.type === "received" ? "text-green-600" : "text-red-600"}`}>
                   {tx.type === "received" ? "+" : "-"}{formatUnits(BigInt(tx.value), parseInt(tx.tokenDecimal || "18"))} {tx.tokenSymbol || "IDRX"}
                 </span>
                 <span className="text-gray-500 text-sm">
-                  {formatDate(tx.timestamp)}
+                  <span className="hidden sm:inline">{formatDate(tx.timestamp).full}</span>
+                  <span className="sm:hidden">{formatDate(tx.timestamp).mobile}</span>
                 </span>
               </div>
             </div>

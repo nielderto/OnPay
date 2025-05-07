@@ -1,278 +1,169 @@
-'use client'
+'use client';
+
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { createSignature } from '@/app/api/transaction/createSignature';
 import { useAccount } from 'wagmi';
-import Image from 'next/image';
-import { Divide } from 'lucide-react';
+import axios from 'axios';
 
-interface BankAccount {
-    bankCode: string;
-    bankAccountNumber: string;
-}
 const BANK_OPTIONS = [
-    { code: '002', name: 'Bank Central Asia (BCA)' },
-    { code: '014', name: 'Bank Bukopin' },
-    { code: '200', name: 'Bank Tabungan Negara (BTN)' }
+  { code: '002', name: 'Bank Central Asia (BCA)' },
+  { code: '014', name: 'Bank Bukopin' },
+  { code: '200', name: 'Bank Tabungan Negara (BTN)' },
 ];
-// Transaction limits
-const MIN_TRANSACTION = 20000; // 20,000 IDR
-const MAX_TRANSACTION = 1000000000; // 1,000,000,000 IDR
+
+const MIN_TRANSACTION = 20000;
+const MAX_TRANSACTION = 1000000000;
+
 const CreateOnRamp: React.FC = () => {
-    const { address } = useAccount();
-    const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
-    const [newBankAccount, setNewBankAccount] = useState<BankAccount>({
-        bankCode: '',
-        bankAccountNumber: ''
-    });
-    const [mintAmount, setMintAmount] = useState<string>('');
-    const [walletAddress, setWalletAddress] = useState<string>('');
-    const [loading, setLoading] = useState<boolean>(false);
-    const [message, setMessage] = useState<string>('');
-    const [error, setError] = useState<string>('');
-    const [amountError, setAmountError] = useState<string>('');
-    // Validate amount when it changes
-    useEffect(() => {
-        if (!mintAmount) {
-            setAmountError('');
-            return;
-        }
-        const amount = parseInt(mintAmount.replace(/\D/g, ''), 10);
+  const { address } = useAccount();
+  const [formData, setFormData] = useState({
+    bankCode: '002',
+    bankAccountNumber: '',
+    mintAmount: '',
+    walletAddress: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [amountError, setAmountError] = useState('');
 
-        if (isNaN(amount)) {
-            setAmountError('Please enter a valid number');
-            return;
-        }
+  useEffect(() => {
+    if (!formData.mintAmount) return setAmountError('');
 
-        if (amount < MIN_TRANSACTION) {
-            setAmountError(`Minimum transaction amount is ${MIN_TRANSACTION.toLocaleString()} IDR`);
-            return;
-        }
+    const amount = parseInt(formData.mintAmount.replace(/\D/g, ''), 10);
+    if (isNaN(amount)) return setAmountError('Please enter a valid number');
+    if (amount < MIN_TRANSACTION) return setAmountError(`Minimum amount is ${MIN_TRANSACTION.toLocaleString()} IDR`);
+    if (amount > MAX_TRANSACTION) return setAmountError(`Maximum amount is ${MAX_TRANSACTION.toLocaleString()} IDR`);
 
-        if (amount > MAX_TRANSACTION) {
-            setAmountError(`Maximum transaction amount is ${MAX_TRANSACTION.toLocaleString()} IDR`);
-            return;
-        }
+    setAmountError('');
+  }, [formData.mintAmount]);
 
-        setAmountError('');
-    }, [mintAmount]);
-    // Format amount as user types
-    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value.replace(/\D/g, '');
-        setMintAmount(value);
-    };
-    const handleAddBankAccount = async () => {
-        if (!newBankAccount.bankCode || !newBankAccount.bankAccountNumber) {
-            setError('Please fill in all bank account fields');
-            return;
-        }
-        setLoading(true);
-        setError('');
-        setMessage('');
-        try {
-            const apiKey = process.env.IDRX_API_KEY;
-            const secret = process.env.IDRX_SECRET_KEY;
-            if (!apiKey || !secret) {
-                throw new Error('API key or secret key is not set');
-            }
-            const path = "https://idrx.co/api/auth/add-bank-account";
-            const req = {
-                bankAccountNumber: newBankAccount.bankAccountNumber,
-                bankCode: newBankAccount.bankCode,
-            };
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'mintAmount' ? value.replace(/\D/g, '') : value,
+    }));
+  };
 
-            const bufferReq = Buffer.from(JSON.stringify(req), 'base64').toString('utf8');
-            const timestamp = Math.round((new Date()).getTime()).toString();
-            const sig = createSignature('POST', path, bufferReq, timestamp, secret);
-            const res = await axios.post(path, req, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'idrx-api-key': apiKey,
-                    'idrx-api-sig': sig,
-                },
-            });
-            setBankAccounts([...bankAccounts, newBankAccount]);
-            setNewBankAccount({ bankCode: '', bankAccountNumber: '' });
-            setMessage(`Bank account added successfully: ${res.data.message || 'Success'}`);
-        } catch (err: any) {
-            setError(`Error adding bank account: ${err.message || 'Unknown error'}`);
-        } finally {
-            setLoading(false);
-        }
-    };
-    const handleMintRequest = async () => {
-        if (!mintAmount || !walletAddress) {
-            setError('Please fill in all mint request fields');
-            return;
-        }
-        const amount = parseInt(mintAmount, 10);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-        if (isNaN(amount) || amount < MIN_TRANSACTION || amount > MAX_TRANSACTION) {
-            setError('Please enter a valid amount within the allowed range');
-            return;
-        }
-        setLoading(true);
-        setError('');
-        setMessage('');
-        try {
-            const apiKey = process.env.IDRX_API_KEY;
-            const secret = process.env.IDRX_SECRET_KEY;
-            if (!apiKey || !secret) {
-                throw new Error('API key or secret key is not set');
-            }
-            const path = "https://idrx.co/api/transaction/mint-request";
-            const req = {
-                toBeMinted: amount.toString(),
-                destinationWalletAddress: walletAddress,
-                expiryPeriod: 3600, // 1 hour
-                networkChainId: "2026", // Lisk Mainnet
-                requestType: "idrx", // 'idrx' or empty to receive IDRX, 'usdt' to receive USDT
-            };
+    const { bankCode, bankAccountNumber, mintAmount, walletAddress } = formData;
+    const amount = parseInt(mintAmount, 10);
 
-            const bufferReq = Buffer.from(JSON.stringify(req), 'base64').toString('utf8');
-            const timestamp = Math.round((new Date()).getTime()).toString();
-            const sig = createSignature('POST', path, bufferReq, timestamp, secret);
-            const res = await axios.post(path, req, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'idrx-api-key': apiKey,
-                    'idrx-api-sig': sig,
-                },
-            });
-            setMessage(`Mint request successful: ${res.data.message || 'Success'}`);
-            setMintAmount('');
-            setWalletAddress('');
-        } catch (err: any) {
-            setError(`Error with mint request: ${err.message || 'Unknown error'}`);
-        } finally {
-            setLoading(false);
-        }
-    };
-    return (
-        <div className="container mx-auto p-4 max-w-4xl min-h-screen flex flex-col items-center justify-center">
-            <div className="flex flex-col items-center justify-center mb-6 sm:mb-8 lg:hidden:fixed top-0 left-0 right-0 z-10 p-4 border-b">
-                <div className="flex flex-row gap-4 items-center justify-center">
-                    <Image src="./idrx.svg" alt="IDRX image" width={40} height={40} />
-                    <h1 className="text-xl md:text-2xl font-bold">Topup IDRX</h1>
-                </div>
-            </div>
+    if (!bankAccountNumber || !mintAmount || !walletAddress) return setError('Please fill in all fields');
+    if (isNaN(amount) || amount < MIN_TRANSACTION || amount > MAX_TRANSACTION) return setError('Invalid amount');
+    if (!walletAddress.match(/^0x[a-fA-F0-9]{40}$/)) return setError('Invalid wallet address');
+    if (!bankAccountNumber.match(/^\d+$/)) return setError('Bank account number must be numeric');
 
-            <div className="flex flex-col lg:flex-row gap-4">
-                {/* Bank Account Section */}
-                <div className="bg-white p-4 md:p-6 rounded-lg shadow-md w-full lg:w-1/2 lg:hidden:mt-20">
-                    <h2 className="text-lg md:text-xl font-semibold mb-4">Add Bank Account</h2>
+    setLoading(true);
+    setError('');
+    setMessage('');
 
-                    <div className="mb-4">
-                        <label className="block text-gray-700 mb-2">Bank</label>
-                        <select
-                            className="w-full p-2 border rounded h-10"
-                            value={newBankAccount.bankCode}
-                            onChange={(e) => setNewBankAccount({ ...newBankAccount, bankCode: e.target.value })}
-                        >
-                            <option value="">Select a bank</option>
-                            {BANK_OPTIONS.map(bank => (
-                                <option key={bank.code} value={bank.code}>
-                                    {bank.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+    try {
+      const res = await axios.post('/api/create-onramp', {
+        bankCode,
+        bankAccountNumber,
+        mintAmount,
+        walletAddress,
+      });
 
-                    <div className="mb-4">
-                        <label className="block text-gray-700 mb-2">Account Number</label>
-                        <input
-                            type="text"
-                            className="w-full p-2 border rounded h-10"
-                            value={newBankAccount.bankAccountNumber}
-                            onChange={(e) => setNewBankAccount({ ...newBankAccount, bankAccountNumber: e.target.value })}
-                            placeholder="Enter bank account number"
-                        />
-                    </div>
+      if (res.data.success) {
+        setMessage(res.data.message || 'Transaction successful');
+        setFormData({ bankCode: '002', bankAccountNumber: '', mintAmount: '', walletAddress: '' });
+      } else {
+        throw new Error(res.data.message || 'Failed to process transaction');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Unexpected error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                    <button
-                        className="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50 h-10 mt-6"
-                        onClick={handleAddBankAccount}
-                        disabled={loading}
-                    >
-                        {loading ? 'Adding...' : 'Add Bank Account'}
-                    </button>
-                </div>
+  return (
+    <div className="flex flex-col items-center justify-center p-4 relative">
+      {/* Background */}
+      <div className="fixed inset-0 z-[-1]">
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15L30 0z' fillRule='evenodd' stroke='%230000FF' strokeWidth='2' fill='none'/%3E%3C/svg%3E")`,
+            backgroundSize: '60px 60px',
+          }}
+        />
+      </div>
 
-                {/* Mint Request Section */}
-                <div className="bg-white p-4 md:p-6 rounded-lg shadow-md w-full lg:w-1/2">
-                    <h2 className="text-lg md:text-xl font-semibold mb-4">Create Mint Request</h2>
+      <div className="max-w-md mx-auto p-4 bg-white shadow-md rounded">
+        <h1 className="text-xl font-semibold mb-4">Create OnRamp</h1>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block font-medium mb-1">Bank Code</label>
+            <select
+              name="bankCode"
+              value={formData.bankCode}
+              onChange={handleInputChange}
+              className="w-full border rounded p-2"
+            >
+              {BANK_OPTIONS.map(bank => (
+                <option key={bank.code} value={bank.code}>
+                  {bank.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-                    <div className="mb-4">
-                        <label className="block text-gray-700 mb-2">Amount to Mint (IDR)</label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                className={`w-full p-2 border rounded h-10 ${amountError ? 'border-red-500' : ''}`}
-                                value={mintAmount ? parseInt(mintAmount).toLocaleString() : ''}
-                                onChange={handleAmountChange}
-                                placeholder="Enter amount to mint"
-                            />
-                            <div className="absolute right-3 top-2 text-gray-500">IDR</div>
-                        </div>
-                        {amountError && (
-                            <p className="text-red-500 text-sm mt-1">{amountError}</p>
-                        )}
-                        <p className="text-gray-500 text-sm mt-1">
-                            Min: {MIN_TRANSACTION.toLocaleString()} IDR | Max: {MAX_TRANSACTION.toLocaleString()} IDR
-                        </p>
-                    </div>
+          <div>
+            <label className="block font-medium mb-1">Bank Account Number</label>
+            <input
+              type="text"
+              name="bankAccountNumber"
+              value={formData.bankAccountNumber}
+              onChange={handleInputChange}
+              className="w-full border rounded p-2"
+              required
+            />
+          </div>
 
-                    <div className="mb-4">
-                        <label className="block text-gray-700 mb-2">Wallet Address</label>
-                        <input
-                            type="text"
-                            className="w-full p-2 border rounded h-10"
-                            value={walletAddress || address}
-                            onChange={(e) => setWalletAddress(e.target.value)}
-                            placeholder="Enter destination wallet address"
-                        />
-                    </div>
+          <div>
+            <label className="block font-medium mb-1">Mint Amount (IDR)</label>
+            <input
+              type="number"
+              name="mintAmount"
+              value={formData.mintAmount}
+              onChange={handleInputChange}
+              className="w-full border rounded p-2"
+              required
+            />
+            {amountError && <p className="text-red-600 text-sm mt-1">{amountError}</p>}
+          </div>
 
-                    <button
-                        className="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50 h-10"
-                        onClick={handleMintRequest}
-                        disabled={loading || !!amountError}
-                    >
-                        {loading ? 'Processing...' : 'Create Mint Request'}
-                    </button>
-                </div>
-            </div>
+          <div>
+            <label className="block font-medium mb-1">Wallet Address</label>
+            <input
+              type="text"
+              name="walletAddress"
+              value={formData.walletAddress}
+              onChange={handleInputChange}
+              className="w-full border rounded p-2"
+              required
+            />
+          </div>
 
-            {/* Bank Accounts List */}
-            {bankAccounts.length > 0 && (
-                <div className="mt-4 bg-white p-4 md:p-6 rounded-lg shadow-md">
-                    <h2 className="text-lg md:text-xl font-semibold mb-4">Your Bank Accounts</h2>
-                    <ul className="divide-y">
-                        {bankAccounts.map((account) => (
-                            <li key={`${account.bankCode}-${account.bankAccountNumber}-${Date.now()}`} className="py-2">
-                                <span className="font-medium">
-                                    {BANK_OPTIONS.find(bank => bank.code === account.bankCode)?.name || account.bankCode}
-                                </span>
-                                <span className="ml-2 text-gray-600">{account.bankAccountNumber}</span>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+            disabled={loading}
+          >
+            {loading ? 'Processing...' : 'Submit'}
+          </button>
 
-            {/* Messages */}
-            {message && (
-                <div className="mt-4 p-3 bg-green-100 text-green-800 rounded mb-16">
-                    {message}
-                </div>
-            )}
-
-            {error && (
-                <div className="mt-4 p-3 bg-red-100 text-red-800 rounded mb-16">
-                    {error}
-                </div>
-            )}
-        </div>
-    );
+          {message && <p className="text-green-600 mt-2">{message}</p>}
+          {error && <p className="text-red-600 mt-2">{error}</p>}
+        </form>
+      </div>
+    </div>
+  );
 };
+
 export default CreateOnRamp;

@@ -9,7 +9,7 @@ export default function Homepage(){
             <Suspense fallback={<div>Loading...</div>}>
                 <Navbar />
             </Suspense>
-            <div className="flex flex-col items-center py-8 gap-8">
+            <div className="flex flex-col items-center py-8 gap-8 pb-24">
                 <Suspense fallback={<div>Loading...</div>}>
                     <DashboardCard />
                     <TransactionHistory />

@@ -8,7 +8,10 @@ export default function Balance({ color = 'black' }){
     const {data: balance} = useBalance({
         address: address as `0x${string}`,
         chainId: liskSepolia.id,
-        token: '0xD63029C1a3dA68b51c67c6D1DeC3DEe50D681661', 
+        token: '0xD63029C1a3dA68b51c67c6D1DeC3DEe50D681661',
+        query: {
+            refetchInterval: 2000, // Refetch every 2 seconds
+        }
     });
 
     const formattedBalance = balance ? 

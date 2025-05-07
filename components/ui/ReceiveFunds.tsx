@@ -14,6 +14,19 @@ const ReceiveFunds: React.FC = () => {
     };
 
     return (
+<div className="flex flex-col items-center justify-center p-4 relative">
+      {/* Background elements */}
+      <div className="fixed inset-0 z-[-1]">
+        {/* Hexagon grid pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15L30 0z' fillRule='evenodd' stroke='%230000FF' strokeWidth='2' fill='none'/%3E%3C/svg%3E")`,
+            backgroundSize: "60px 60px",
+          }}
+        />
+      </div>
+
         <div className="flex flex-col items-center p-4 bg-white rounded-3xl">
             <h2 className="text-xl font-bold mb-4">Receive Funds</h2>
             <div className="bg-white p-4 rounded-lg cursor-pointer" onClick={handleScan}>
@@ -30,6 +43,7 @@ const ReceiveFunds: React.FC = () => {
             <div className="mt-2 text-xs break-all text-gray-500">
                 {walletAddress}
             </div>
+        </div>
         </div>
     );
 };

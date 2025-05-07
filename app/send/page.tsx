@@ -6,7 +6,7 @@ import { Suspense } from "react";
 export default function SendPage() {
     return (
         <div>
-            <div className="flex flex-col items-center justify-center min-h-screen p-4">
+            <div className="flex flex-col items-center justify-center min-h-screen p-4 pb-24">
                 <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-md mt-20">
                     <div className="flex flex-col justify-center items-center">
                     <SendHorizonal color="#0055FF"/>

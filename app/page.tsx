@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from "next/link";
 import { HyperText } from "@/components/magicui/hyper-text";
 import DevPage from "@/components/cards/DevPage";
-import { cn } from "@/lib/utils";
+
 
 const dmSans = DM_Sans({ 
   subsets: ['latin'],

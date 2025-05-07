@@ -38,7 +38,7 @@ That's hard to remember, easy to mistype, and not at all beginner-friendly.
 With our ENS-powered naming system, users can register unique usernames like:
 
 
-`@jenny.idrx` `@markus.idrx` `@shop123.idrx`
+`@jenny.lisk` `@markus.lisk` `@shop123.lisk`
 
 This creates a payment experience that feels familiar — like sending money on your favorite messaging app — but fully decentralized.
 

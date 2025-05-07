@@ -5,7 +5,7 @@ import { useAccount } from "wagmi"
 import { useEffect, useState } from "react"
 import { redirect } from "next/navigation"
 import Loading from "@/app/loading"
-import { Wallet, ArrowRight, Shield } from "lucide-react"
+import { ArrowRight, Shield } from "lucide-react"
 
 export default function LoginPage() {
   const { open } = useConnectModal()
