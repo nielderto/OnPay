@@ -151,8 +151,8 @@ export const TransactionHistory = () => {
       </div>
 
       <div className="space-y-4">
-        {displayedTransactions.map((tx) => (
-          <div key={tx.hash} className="bg-white rounded-lg border border-gray-200 p-4">
+        {displayedTransactions.map((tx, idx) => (
+          <div key={tx.hash + '-' + idx} className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className={`p-2 rounded-full ${tx.type === "received" ? "bg-green-100" : "bg-red-100"}`}>

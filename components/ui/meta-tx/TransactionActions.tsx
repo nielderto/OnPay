@@ -1,3 +1,5 @@
+import CircularProgress from '@mui/material/CircularProgress';
+
 interface TransactionActionsProps {
   isLoading: boolean;
   isApproving: boolean;
@@ -31,9 +33,9 @@ export const TransactionActions = ({
         }`}
       >
         {isLoading 
-          ? 'Processing...' 
+          ? <CircularProgress /> 
           : isApproving 
-            ? 'Approving...' 
+            ? <CircularProgress /> 
             : isApproved 
               ? 'Send IDRX'
               : 'Approve'

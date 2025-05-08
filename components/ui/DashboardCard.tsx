@@ -29,7 +29,7 @@ export default function DashboardCard() {
   };
 
   return (
-    <div className="relative mt-0 sm:mt-32">
+    <div className="relative mt-0 sm:mt-20">
       <div className="w-[25rem] lg:w-[60rem] mx-auto p-2 sm:p-6 md:p-8 lg:p-10">
         {/* Top Gradient Card */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-t-2xl p-4 sm:p-8 md:p-10 text-white flex flex-col gap-4 sm:gap-6">

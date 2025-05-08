@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from "next/link";
 import { HyperText } from "@/components/magicui/hyper-text";
 import DevPage from "@/components/cards/DevPage";
+import { TypingAnimation } from "@/components/magicui/typing-animation";
 
 
 const dmSans = DM_Sans({ 
@@ -17,38 +18,15 @@ export default function Home() {
   return (
     <>
 
-      <main className="flex flex-col items-center justify-center min-h-screen px-4 text-center">
+      <main className="flex flex-col items-center justify-center min-h-screen px-4 text-center bg-gradient-to-t from-blue-400 via-blue-200 to-white">
         <section className="max-w-4xl w-full mx-auto">
           <div className="flex flex-col items-center gap-2">
-            <div className="flex flex-row items-center justify-center gap-2">
-              <Image 
-                src="/idrx.svg" 
-                alt="IDRX Logo" 
-                width={40} 
-                height={40} 
-                priority
-                aria-label="IDRX Logo"
-              />
-              <Image 
-                src="/lsk.svg" 
-                alt="LSK Logo" 
-                width={40} 
-                height={40} 
-                priority
-                aria-label="LSK Logo"
-              />
-              <Image 
-                src="/ether.svg" 
-                alt="Ethereum Logo" 
-                width={40} 
-                height={40} 
-                priority
-                aria-label="Ethereum Logo"
-              />
-            </div>
-            <h2 className={`${dmSans.className} text-2xl md:text-4xl lg:text-6xl font-bold mb-8`}>
-              Send Value, Not Gas — Powered by <HyperText>OnPay</HyperText>
+            <h2 className={`${dmSans.className} text-4xl md:text-8xl font-bold tracking-tight`}>
+              Send Value, Not Gas 
             </h2>
+            <h3 className="text-black text-center mb-6">
+              Powered by <TypingAnimation>OnPay</TypingAnimation>
+            </h3>
           </div>
           <Link
             href="/login"
@@ -59,16 +37,16 @@ export default function Home() {
           </Link>
         </section>
 
-        <section className="mt-16" aria-label="Scroll down indicator">
-          <MoveDown color="#0055FF" size={32} className="md:w-8 md:h-8 lg:w-10 lg:h-10" />
+        <section className="mt-16 animate-bounce" aria-label="Scroll down indicator">
+          <MoveDown color="black" size={32} className="md:w-8 md:h-8 lg:w-10 lg:h-10" />
         </section>
       </main>
 
-      <section className="flex flex-col items-center justify-center min-h-screen px-4 text-center" aria-label="How it works section">
-        <header className="mb-10">
+      <section className="flex flex-col items-center justify-center min-h-screen px-6 pb-10 text-center" aria-label="How it works section">
+        <header className="mb-15 mt-15">
           <h2 className="font-bold">HOW IT WORKS</h2>
-          <h3 className={`${dmSans.className} font-bold text-3xl md:text-4xl lg:text-5xl`}>
-            Payments done in <br />three steps
+          <h3 className={`${dmSans.className} font-bold text-2xl md:text-4xl lg:text-5xl`}>
+            Payments done in three steps
           </h3>
         </header>
 
