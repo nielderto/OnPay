@@ -1,0 +1,7 @@
+name = "ens-gateway"
+main = "index.ts"
+compatibility_date = "2024-03-19"
+
+[vars]
+# Default environment variables (override with secrets or .env)
+LISK_SEPOLIA_RPC_URL = "https://sepolia-rpc.lisk.com"
