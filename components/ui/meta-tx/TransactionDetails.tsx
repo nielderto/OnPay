@@ -4,7 +4,7 @@ interface TransactionDetailsProps {
 
 export const TransactionDetails = ({ amount }: TransactionDetailsProps) => {
   return (
-    <div className="text-sm text-gray-700 text-center mb-4">
+    <div className="text-sm text-gray-700 text-center mb-4 w-full overflow-x-auto box-border min-w-0">
       <p className="font-bold text-2xl">Transaction Details:</p>
       <div className="mt-2">
         <p>Recipient will receive: {amount} IDRX</p>

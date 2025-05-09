@@ -90,7 +90,7 @@ export default function SendForm() {
   }
 
   return (
-    <div>
+    <div className="w-full">
       {showReceipt && lastTransaction && (
         <TransactionReceipt
           recipientAddress={lastTransaction.recipientAddress}
@@ -98,7 +98,7 @@ export default function SendForm() {
           onClose={() => setShowReceipt(false)}
         />
       )}
-      <div className="flex flex-col items-center justify-center p-4 relative">
+      <div className="flex flex-col items-center justify-center p-4 sm:p-8 relative w-full">
         {/* Background elements */}
         <div className="fixed inset-0 z-[-1]">
           {/* Hexagon grid pattern */}
@@ -112,7 +112,7 @@ export default function SendForm() {
         </div>
       </div>
       
-      <div>
+      <div className="max-w-[45rem] mx-auto px-4">
         <TransactionStatus 
           status={transactionStatus} 
           errorMessage={errorMessage} 

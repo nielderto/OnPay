@@ -4,6 +4,7 @@ import { Plus, Send, QrCode, Copy, ChevronDown, ExternalLink } from "lucide-reac
 import Link from "next/link";
 import Address from "../data/Address";
 import { useState } from "react";
+import UserGreeting from "../UserGreeting";
 
 export default function DashboardCard() {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
@@ -29,19 +30,17 @@ export default function DashboardCard() {
   };
 
   return (
-    <div className="relative mt-0 sm:mt-20">
-      <div className="w-[25rem] lg:w-[60rem] mx-auto p-2 sm:p-6 md:p-8 lg:p-10">
+    <div className="relative flex flex-col items-center ">
+      <UserGreeting username="nielderto" />
+      <div className="w-[26rem] lg:w-[60rem] mx-auto p-2 sm:p-6 md:p-8 lg:p-10">
         {/* Top Gradient Card */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-t-2xl p-4 sm:p-8 md:p-10 text-white flex flex-col gap-4 sm:gap-6">
           <div className="flex justify-between items-start w-full">
-            <div className="flex flex-col gap-2 sm:gap-3">
-              <span className="text-base sm:text-lg text-white/90 font-medium">Available Balance</span>
+            <div className="flex flex-col gap-2 sm:gap-[0.5rem] border-white">
+              <span className="text-base sm:text-lg text-white/90 font-medium">Your Balance</span>
               <span className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
                 <Balance color="white"/>
               </span>
-              <div className="flex items-center gap-2 py-1 sm:py-2 px-2 sm:px-3 w-fit">
-                <span data-address className="text-sm sm:text-base text-white/90 hover:text-white p-1.5 sm:p-2 rounded-lg bg-white/10 transition-colors"><Address/></span>
-              </div>
             </div>
             <div className="relative">
               <button 

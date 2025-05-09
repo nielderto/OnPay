@@ -6,7 +6,7 @@ import Link from "next/link";
 import { HyperText } from "@/components/magicui/hyper-text";
 import DevPage from "@/components/cards/DevPage";
 import { TypingAnimation } from "@/components/magicui/typing-animation";
-
+import Navbar from "@/components/buttons/Navbar";
 
 const dmSans = DM_Sans({ 
   subsets: ['latin'],
@@ -14,18 +14,26 @@ const dmSans = DM_Sans({
   display: 'swap',
 });
 
+// Loading component for developer cards
+const DevCardsLoading = () => (
+  <div className="flex flex-col items-center justify-center gap-4 md:flex-row">
+    {[1, 2].map((i) => (
+      <div key={i} className="w-64 h-64 bg-gray-200 rounded-lg animate-pulse" />
+    ))}
+  </div>
+);
+
 export default function Home() {
   return (
     <>
-
-      <main className="flex flex-col items-center justify-center min-h-screen px-4 text-center bg-gradient-to-t from-blue-400 via-blue-200 to-white">
+      <main className="flex flex-col items-center justify-center min-h-screen px-4 text-center ">
         <section className="max-w-4xl w-full mx-auto">
           <div className="flex flex-col items-center gap-2">
             <h2 className={`${dmSans.className} text-4xl md:text-8xl font-bold tracking-tight`}>
               Send Value, Not Gas 
             </h2>
-            <h3 className="text-black text-center mb-6">
-              Powered by <TypingAnimation>OnPay</TypingAnimation>
+            <h3 className="text-black text-center mb-6 font-bold text-2xl">
+              Powered by OnPay
             </h3>
           </div>
           <Link
@@ -87,8 +95,8 @@ export default function Home() {
       <footer className="w-screen bg-blue-500 text-white py-12">
         <div className="max-w-6xl mx-auto px-4 text-center">
           <h2 className={`${dmSans.className} text-5xl font-bold mb-8`}>Developed By</h2>
-          <div className="flex flex-col items-center justify-center gap-4 md:flex-row">
-            <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<DevCardsLoading />}>
+            <div className="flex flex-col items-center justify-center gap-4 md:flex-row">
               <DevPage
                 name="Otneil Xander Susanto"
                 role="Frontend Developer"
@@ -111,8 +119,8 @@ export default function Home() {
                   "https://instagram.com/filbertowen",
                 ]}
               />
-            </Suspense>
-          </div>
+            </div>
+          </Suspense>
         </div>
       </footer>
     </>

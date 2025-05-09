@@ -23,7 +23,7 @@ export default function Navbar(){
             </div>
 
             {/* Laptop Navbar */}
-            <div className="hidden md:flex fixed top-0 z-50 left-0 right-0 justify-between items-center p-4 bg-white/40 backdrop-blur-sm border-b border-gray-200/50 shadow-sm lg:w-[50rem] mx-auto rounded-3xl mt-4">
+            <div className="hidden md:flex fixed top-0 z-50 left-0 right-0 justify-between items-center p-4 bg-white/40 backdrop-blur-sm border-b border-gray-200/50 shadow-sm lg:w-[55rem] mx-auto rounded-3xl mt-4">
                 <Link 
                     href="/homepage" 
                     className="text-xl font-bold hover:text-gray-600 transition-colors group flex items-center gap-2"

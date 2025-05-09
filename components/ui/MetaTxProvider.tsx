@@ -44,7 +44,7 @@ export default function MetaTxProvider({
   };
 
   return (
-    <div className="mt-4">
+    <div className="mt-4 max-w-[55rem] mx-auto">
       <TransactionDetails amount={amount} />
       <TransactionActions
         isLoading={isLoading}
