@@ -1,10 +1,9 @@
 'use client'
-import { useQuery } from "@tanstack/react-query";
-import { useAccount } from "wagmi";
-import axios from "axios";
-import { formatUnits } from "viem";
 import { Send, Copy, ExternalLink } from "lucide-react";
 import { useState } from "react";
+import { useTransactions } from "../../hooks/useTransactions";
+import { formatUnits } from "viem";
+import axios from "axios";
 
 interface Transaction {
   hash: string;
@@ -61,15 +60,9 @@ const formatDate = (timestamp: number) => {
 };
 
 export const TransactionHistory = () => {
-  const { address, isConnected } = useAccount();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [showAll, setShowAll] = useState(false);
-
-  const { data: transactions = [], isLoading } = useQuery({
-    queryKey: ["idrxTokenTransactions", address, IDRX_TOKEN_ADDRESS],
-    queryFn: () => (address ? fetchTransactions(address) : Promise.resolve([])),
-    enabled: !!address && isConnected,
-  });
+  const { transactions, isLoading, isConnected } = useTransactions();
 
   const filteredTransactions = transactions.filter(tx => {
     if (activeFilter === "all") return true;
@@ -103,8 +96,22 @@ export const TransactionHistory = () => {
     );
   }
 
+  if (displayedTransactions.length === 0) {
+    return (
+      <div className="w-full max-w-4xl mx-auto px-4">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Transaction History</h1>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+          <div className="text-gray-500 mb-2">No transactions found</div>
+          <div className="text-sm text-gray-400">Your transaction history will appear here</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full max-w-4xl mx-auto px-4">
+    <div className="w-full max-w-4xl mx-auto px-4 mt-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Transaction History</h1>
         {filteredTransactions.length > 3 && (

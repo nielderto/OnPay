@@ -5,7 +5,7 @@ import { Suspense } from "react";
 export default function ReceivePage() {
     return (
         <>
-        <div className="flex flex-col items-center justify-center h-screen">
+        <div className="flex flex-col items-center justify-center h-screen max-w-[45rem] mx-auto">
             <Suspense fallback={<div>Loading...</div>}>
                 <ReceiveFunds />
             </Suspense>

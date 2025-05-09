@@ -25,7 +25,7 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased bg-[#f0f0f0] suppressHydrationWarning`}>
         <ErrorBoundary>
           <Web3Provider>
-            <Suspense fallback={<Loading />}>
+            <Suspense fallback={<Loading />}> 
               {children}
             </Suspense>
           </Web3Provider>
