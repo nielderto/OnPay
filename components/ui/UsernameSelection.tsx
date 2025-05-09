@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useAccount } from "wagmi"
 import { useRouter } from "next/navigation"
 import { ArrowRight, CheckCircle, XCircle, Loader2 } from "lucide-react"
-import { checkENSNameAvailable, registerENSName, lookupENSName } from "@/lib/ens-service"
+import { checkENSNameAvailable, registerENSName} from "@/lib/ens-service"
 
 export default function UsernameSelection() {
     const { address } = useAccount()
@@ -40,7 +40,7 @@ export default function UsernameSelection() {
         if (!address) return
 
         try {
-            const existingName = await lookupENSName(address)
+            const existingName = await checkENSNameAvailable(address)
             if (existingName) {
                 // User already has a name, redirect to homepage
                 router.push("/homepage")

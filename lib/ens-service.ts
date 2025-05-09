@@ -1,20 +1,30 @@
 import { ethers } from "ethers";
 import { createPublicClient, http, encodeFunctionData, decodeFunctionResult, toHex, hexToBytes } from "viem";
-import { sepolia } from "viem/chains";
+import { liskSepolia } from "viem/chains";
 import { normalize } from "viem/ens";
 import { L1Resolver } from "@/abi/L1Resolver";
 import { L2Registry } from "@/abi/L2Registry";
+import { L2Registrar } from '@/abi/L2Registrar';
 
 // Constants
 const L1_RESOLVER_ADDRESS = L1Resolver.address; // Your L1 resolver on Sepolia
 const L2_REGISTRY_ADDRESS = L2Registry.address; // Your L2 registry on Lisk
+const L2_REGISTRAR_ADDRESS = L2Registrar.address; // Your L2 registrar on Lisk
 const ENS_GATEWAY_URL = "https://ens-gateway.onpaylisk.workers.dev"; // Your gateway URL
+const NETWORK = "liskSepolia";
 
-// Create a Viem public client for Sepolia
+
 const publicClient = createPublicClient({
-    chain: sepolia,
+    chain: liskSepolia,
     transport: http(),
 });
+
+const PROVIDERS: Record<string, string> = {
+    liskSepolia: "https://rpc.sepolia-api.lisk.com",
+    // liskMainnet: "https://rpc.lisk.com",
+};
+
+const provider = new ethers.JsonRpcProvider(PROVIDERS[NETWORK]);
 
 /**
  * Convert a regular string to 0x-prefixed string
@@ -39,7 +49,8 @@ function namehash(name: string): `0x${string}` {
 
         for (let i = labels.length - 1; i >= 0; i--) {
             const labelHash = ethers.keccak256(ethers.toUtf8Bytes(labels[i]));
-            node = ethers.keccak256(ethers.concat([node, labelHash].map(h => ethers.getBytes(h))));
+            node = ethers.keccak256(ethers.concat([ethers.getBytes(node), ethers.getBytes(labelHash)])
+            );
         }
     }
 
@@ -53,75 +64,59 @@ function namehash(name: string): `0x${string}` {
  */
 export async function checkENSNameAvailable(ensName: string): Promise<{ available: boolean; reason?: string }> {
     try {
-        // In production environment, use actual resolver
-        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-            // Normalize the name
-            const normalizedName = normalize(ensName);
+        const normalizedName = normalize(ensName);
+        const parts = normalizedName.split(".");
 
-            // Get the namehash
-            const node = namehash(normalizedName);
+        // Expecting format like username.lisk.eth
+        if (parts.length < 3 || parts[parts.length - 1] !== "eth" || parts[parts.length - 2] !== "lisk") {
+            return {
+                available: false,
+                reason: "Invalid name format. Must be in the format username.lisk.eth"
+            };
+        }
 
-            try {
-                // Try to resolve the address - if it resolves, it's taken
-                const address = await resolveENSName(normalizedName);
-                return {
-                    available: !address,
-                    reason: address ? `${ensName} is already registered to ${address}` : undefined
-                };
-            } catch (error: any) {
-                // If there's an error but it's not because the name doesn't exist, propagate it
-                if (error?.message && !error.message.includes("not found")) {
-                    throw error;
-                }
+        const username = parts[0];
 
-                // Otherwise assume it's available
-                return { available: true };
-            }
-        } else {
-            // Development environment mock implementation
-            // Normalize the name
-            const normalizedName = normalize(ensName);
+        if (username.length < 3) {
+            return {
+                available: false,
+                reason: "Username must be at least 3 characters long"
+            };
+        }
 
-            // Split the name to get domain parts
-            const parts = normalizedName.split(".");
+        if (!/^[a-z0-9]+$/.test(username)) {
+            return {
+                available: false,
+                reason: "Username can only contain lowercase letters and numbers"
+            };
+        }
 
-            if (parts.length < 3 || parts[parts.length - 1] !== "eth" || parts[parts.length - 2] !== "lisk") {
-                return {
-                    available: false,
-                    reason: "Invalid name format. Must be in the format username.lisk.eth"
-                };
-            }
+        // Connect to the L2Registrar contract
+        console.log(`Checking availability for ${username}...`);
+        const registrar = new ethers.Contract(
+            L2_REGISTRAR_ADDRESS,
+            L2Registrar.abi,
+            provider
+        );
 
-            // Get the username part
-            const username = parts[0];
-
-            if (username.length < 3) {
-                return {
-                    available: false,
-                    reason: "Username must be at least 3 characters long"
-                };
-            }
-
-            if (!/^[a-z0-9]+$/.test(username)) {
-                return {
-                    available: false,
-                    reason: "Username can only contain lowercase letters and numbers"
-                };
-            }
-
-            // For demo/dev, use localStorage
-            const isTaken = localStorage.getItem(`ens-name-taken-${username.toLowerCase()}`) !== null;
+        try {
+            // Call the `available` method
+            const isAvailable = await registrar.available(username);
+            console.log(`Availability result for ${username}: ${isAvailable}`);
 
             return {
-                available: !isTaken,
-                reason: isTaken ? `${ensName} is already registered` : undefined
+                available: isAvailable,
+                reason: isAvailable ? undefined : `${ensName} is already registered`
             };
+        } catch (contractError: any) {
+            console.error("Error calling contract:", contractError);
+            throw new Error(`Error checking availability: ${contractError.message}`);
         }
     } catch (error: any) {
         console.error("Error checking ENS name availability:", error);
         return {
             available: false,
-            reason: "Error checking name availability"
+            reason: "Error checking name availability: " + error.message
         };
     }
 }
@@ -134,33 +129,61 @@ export async function checkENSNameAvailable(ensName: string): Promise<{ availabl
  */
 export async function registerENSName(ensName: string, address: string): Promise<boolean> {
     try {
-        // In a production environment, this would interact with the actual L2 registry
-        // For now, we're using localStorage for demo/development purposes
-        // In actual implementation, you would:
-        // 1. Connect to the L2 network with a signer
-        // 2. Call the L2Registry.setSubnodeOwner function
+        if (!window.ethereum) throw new Error("No wallet detected");
 
-        // Normalize the name
-        const normalizedName = normalize(ensName);
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
 
-        // Split the name to get the username
-        const parts = normalizedName.split(".");
-        const username = parts[0];
+        const normalized = normalize(ensName);
+        const parts = normalized.split(".");
 
-        // Check availability first
-        const availability = await checkENSNameAvailable(ensName);
-        if (!availability.available) {
-            throw new Error(availability.reason || "Name is not available");
+        if (parts.length < 3 || parts[parts.length - 1] !== "eth" || parts[parts.length - 2] !== "lisk") {
+            throw new Error("ENS format must be username.lisk.eth");
         }
 
-        // Store in localStorage for demo purposes
-        // In production, this would be a transaction to the ENS contracts
-        localStorage.setItem(`ens-username-${address.toLowerCase()}`, ensName);
-        localStorage.setItem(`ens-name-taken-${username.toLowerCase()}`, address);
+        const label = parts[0];
 
+        if (label.length < 3) throw new Error("Username must be at least 3 characters");
+        if (!/^[a-z0-9]+$/.test(label)) throw new Error("Username must be lowercase alphanumerics only");
+
+        // Check availability
+        const available = await checkENSNameAvailable(ensName);
+        if (!available.available) throw new Error(available.reason || "Name is taken");
+
+        // Ensure network is Lisk Sepolia (chainId 0x106A = 4202 in decimal)
+        const network = await provider.getNetwork();
+        const liskSepoliaChainIdHex = "0x106A";
+
+        if (network.chainId.toString(16).toLowerCase() !== liskSepoliaChainIdHex.toLowerCase().replace(/^0x/, '')) {
+            console.log(`Current network: ${network.chainId}, expected: ${liskSepoliaChainIdHex}`);
+            await window.ethereum.request({
+                method: "wallet_switchEthereumChain",
+                params: [{ chainId: liskSepoliaChainIdHex }]
+            });
+        }
+
+        // Send registration tx
+        const registrar = new ethers.Contract(L2_REGISTRAR_ADDRESS, L2Registrar.abi, signer);
+        console.log(`Registering ${label}.lisk.eth for address ${address}...`);
+        const tx = await registrar.register(label, address);
+        console.log(`Transaction submitted: ${tx.hash}`);
+        const receipt = await tx.wait();
+        console.log(`Transaction confirmed: ${receipt.hash}`);
+
+        // Store in localStorage as a quick fallback for reverse lookup
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem(`ens-username-${address.toLowerCase()}`, normalized);
+                console.log(`Stored ${normalized} for ${address} in localStorage`);
+            }
+        } catch (storageError) {
+            console.warn("Could not store name in localStorage:", storageError);
+        }
+
+        console.log(`Successfully registered ${normalized} to ${address}`);
         return true;
     } catch (error) {
-        console.error("Error registering ENS name:", error);
+        console.error("ENS registration failed:", error);
         throw error;
     }
 }
@@ -172,106 +195,24 @@ export async function registerENSName(ensName: string, address: string): Promise
  */
 export async function resolveENSName(ensName: string): Promise<string | null> {
     try {
-        // In production environment, use the actual L1 resolver with CCIP-Read
-        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-            // Encode the function call for addr(bytes32)
-            const addrSelector = '0x3b3b57de'; // selector for addr(bytes32)
-            const nameHash = namehash(ensName);
+        const normalizedName = normalize(ensName);
+        const node = namehash(normalizedName);
+        const nameBytes = ethers.toUtf8Bytes(normalizedName);
 
-            // Encode the call to resolve(bytes,bytes)
-            const nameBytes = toHex(ethers.toUtf8Bytes(ensName));
-            const selectorAndHash = toHexString(addrSelector + nameHash.slice(2));
+        const addrSelector = "0x3b3b57de"; // function selector for addr(bytes32)
+        const calldata = addrSelector + node.slice(2);
 
-            const callData = encodeFunctionData({
-                abi: L1Resolver.abi,
-                functionName: 'resolve',
-                args: [nameBytes, selectorAndHash]
-            });
-
-            try {
-                // Call the resolver
-                const result = await publicClient.readContract({
-                    address: L1_RESOLVER_ADDRESS as `0x${string}`,
-                    abi: L1Resolver.abi,
-                    functionName: 'resolve',
-                    args: [nameBytes, selectorAndHash],
-                });
-
-                // If we get here, the name was resolved on L1 directly
-                return ethers.getAddress(`0x${(result as string).slice(2 + 64)}`);
-            } catch (error: any) {
-                // Check for OffchainLookup error
-                if (error?.cause?.name === 'ContractFunctionExecutionError' &&
-                    error?.cause?.cause?.data?.errorName === 'OffchainLookup') {
-                    // Extract the necessary data for the offchain lookup
-                    const offchainData = error.cause.cause.data;
-
-                    // Fetch from the gateway using the URL and callData
-                    const gatewayUrl = `${offchainData.args.urls[0]}/${L1_RESOLVER_ADDRESS}/${offchainData.args.callData.slice(2)}`;
-
-                    // Fetch the data from the gateway
-                    const response = await fetch(gatewayUrl);
-                    if (!response.ok) {
-                        throw new Error(`Gateway response error: ${response.status}`);
-                    }
-
-                    const responseData = await response.json();
-                    const result = responseData.data;
-
-                    // Call the callback function on the resolver with the result
-                    const callbackSelector = offchainData.args.callbackFunction;
-                    const callbackData = encodeFunctionData({
-                        abi: [{
-                            name: 'processLookup',
-                            type: 'function',
-                            inputs: [
-                                { name: 'response', type: 'bytes' },
-                                { name: 'extraData', type: 'bytes' }
-                            ],
-                            outputs: [{ name: '', type: 'bytes' }]
-                        }],
-                        functionName: 'processLookup',
-                        args: [result, offchainData.args.extraData]
-                    });
-
-                    const finalResult = await publicClient.readContract({
-                        address: L1_RESOLVER_ADDRESS as `0x${string}`,
-                        abi: [{
-                            name: 'processLookup',
-                            type: 'function',
-                            inputs: [
-                                { name: 'response', type: 'bytes' },
-                                { name: 'extraData', type: 'bytes' }
-                            ],
-                            outputs: [{ name: '', type: 'bytes' }]
-                        }],
-                        functionName: 'processLookup',
-                        args: [result, offchainData.args.extraData]
-                    });
-
-                    // Parse the address from the result
-                    return ethers.getAddress(`0x${(finalResult as string).slice(2 + 64)}`);
-                } else {
-                    // Other error, just rethrow
-                    throw error;
-                }
-            }
-        } else {
-            // Development environment mock implementation
-
-            // Parse the name to get the username
-            const parts = normalize(ensName).split(".");
-            if (parts.length < 3 || parts[parts.length - 1] !== "eth" || parts[parts.length - 2] !== "lisk") {
-                return null;
-            }
-
-            const username = parts[0];
-
-            // Look up in our mock registry
-            return localStorage.getItem(`ens-name-taken-${username.toLowerCase()}`) || null;
-        }
+        const result = await publicClient.readContract({
+            address: L1_RESOLVER_ADDRESS as `0x${string}`,
+            abi: L1Resolver.abi,
+            functionName: "resolve",
+            args: [ethers.hexlify(nameBytes), calldata],
+        });
+        // Extract the address from the returned bytes
+        const resolvedAddress = "0x" + (result as string).slice(66, 106); // skip first 64 bytes (offset)
+        return ethers.getAddress(resolvedAddress); // checksum
     } catch (error) {
-        console.error("Error resolving ENS name:", error);
+        console.error("ENS resolution failed:", error);
         return null;
     }
 }
@@ -281,16 +222,28 @@ export async function resolveENSName(ensName: string): Promise<string | null> {
  * @param address The Ethereum address to look up
  * @returns Promise<string> The ENS name or null if not found
  */
-export async function lookupENSName(address: string): Promise<string | null> {
-    try {
-        // In production, this would query the reverse records
-        // For now, we use localStorage
-        return localStorage.getItem(`ens-username-${address.toLowerCase()}`) || null;
-    } catch (error) {
-        console.error("Error looking up ENS name:", error);
-        return null;
-    }
-}
+// export async function lookupENSName(address: string): Promise<string | null> {
+//     try {
+//         // Create a provider for connecting to Lisk Sepolia
+//         const lookupProvider = new ethers.JsonRpcProvider(PROVIDERS[NETWORK]);
+
+//         // Try standard ENS reverse lookup first
+//         const name = await lookupProvider.lookupAddress(address);
+//         if (name && name.endsWith('.lisk.eth')) {
+//             return name;
+//         }
+
+//         // If no standard lookup, check local storage as fallback
+//         const localName = typeof localStorage !== 'undefined'
+//             ? localStorage.getItem(`ens-username-${address.toLowerCase()}`)
+//             : null;
+
+//         return localName;
+//     } catch (error) {
+//         console.error("Error looking up ENS name:", error);
+//         return null;
+//     }
+// }
 
 /**
  * A more complete implementation for production would include these functions:
