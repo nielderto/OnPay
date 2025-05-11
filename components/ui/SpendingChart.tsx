@@ -161,13 +161,21 @@ export default function SpendingChart() {
         );
     }
 
+    if(transactions.length === 0){
+        return (
+            <div className="p-4 text-gray-500 text-center bg-white rounded-lg shadow-sm md:p-6 w-[25rem] lg:w-[55rem] mx-auto">
+                Spending cannot be tracked for this week as there are no transactions.
+            </div>
+        );
+    }
+
     return (
         <div className="w-[25rem] lg:w-[55rem] mx-auto">
             {selectedType === 'sent' ? (
                 <div className="bg-white rounded-lg shadow-sm dark:bg-gray-800 p-4 md:p-6">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-base font-normal text-gray-500 dark:text-gray-400">Total Sent</p>
+                            <p className="text-base font-normal text-gray-500 dark:text-gray-400">This week's transfer</p>
                             <h5 className="leading-none text-3xl font-bold text-gray-900 dark:text-white pb-2">
                                 {stats.totalSent.toFixed(2)} IDRX
                             </h5>
@@ -192,7 +200,7 @@ export default function SpendingChart() {
                 <div className="bg-white rounded-lg shadow-sm dark:bg-gray-800 p-4 md:p-6">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-base font-normal text-gray-500 dark:text-gray-400">Total Received</p>
+                            <p className="text-base font-normal text-gray-500 dark:text-gray-400">This week's received </p>
                             <h5 className="leading-none text-3xl font-bold text-gray-900 dark:text-white pb-2">
                                 {stats.totalReceived.toFixed(2)} IDRX
                             </h5>

@@ -222,28 +222,28 @@ export async function resolveENSName(ensName: string): Promise<string | null> {
  * @param address The Ethereum address to look up
  * @returns Promise<string> The ENS name or null if not found
  */
-// export async function lookupENSName(address: string): Promise<string | null> {
-//     try {
-//         // Create a provider for connecting to Lisk Sepolia
-//         const lookupProvider = new ethers.JsonRpcProvider(PROVIDERS[NETWORK]);
+export async function lookupENSName(address: string): Promise<string | null> {
+    try {
+        // Create a provider for connecting to Lisk Sepolia
+        const lookupProvider = new ethers.JsonRpcProvider(PROVIDERS[NETWORK]);
 
-//         // Try standard ENS reverse lookup first
-//         const name = await lookupProvider.lookupAddress(address);
-//         if (name && name.endsWith('.lisk.eth')) {
-//             return name;
-//         }
+        // Try standard ENS reverse lookup first
+        const name = await lookupProvider.lookupAddress(address);
+        if (name && name.endsWith('.lisk.eth')) {
+            return name;
+        }
 
-//         // If no standard lookup, check local storage as fallback
-//         const localName = typeof localStorage !== 'undefined'
-//             ? localStorage.getItem(`ens-username-${address.toLowerCase()}`)
-//             : null;
+        // If no standard lookup, check local storage as fallback
+        const localName = typeof localStorage !== 'undefined'
+            ? localStorage.getItem(`ens-username-${address.toLowerCase()}`)
+            : null;
 
-//         return localName;
-//     } catch (error) {
-//         console.error("Error looking up ENS name:", error);
-//         return null;
-//     }
-// }
+        return localName;
+    } catch (error) {
+        console.error("Error looking up ENS name:", error);
+        return null;
+    }
+}
 
 /**
  * A more complete implementation for production would include these functions:
