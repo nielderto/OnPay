@@ -41,5 +41,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# ens gateway
-ens/dist
+# ens gateway Cloudflare Wrangler
+ens/dist/
+ens/.wrangler/
+ens/.wrangler/state/
+ens/.wrangler/tmp/
+ens/.wrangler/public/
+ens/.wrangler/deployments.json
+
+# Migrations (optional)
+ens/migrations/*.db
+ens/migrations/.tmp/

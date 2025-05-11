@@ -21,23 +21,23 @@ export async function handleQueryLisk({
   const { functionName, args } = decodeFunctionData({
     abi: resolverAbi,
     data: encodedResolveCall,
-  })
+  });
 
   const l2Client = createPublicClient({
     chain: liskSepolia,
     transport: http(envVar('LISK_SEPOLIA_RPC_URL', env)),
-  })
+  });
 
   console.log({
     name,
     functionName,
     args,
-  })
+  });
 
   return l2Client.readContract({
     address: targetRegistryAddress,
     abi: [resolverAbi[1]], // resolve(bytes,bytes)
     functionName: 'resolve',
     args: [dnsEncodedName, encodedResolveCall],
-  })
+  });
 }

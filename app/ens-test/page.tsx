@@ -16,7 +16,7 @@ declare global {
 
 // Custom Wagmi ENS Test Component
 function CustomWagmiTest() {
-    const [ensName, setEnsName] = useState("haowen.lisk.eth");
+    const [ensName, setEnsName] = useState("haowen");
     const [manualAddress, setManualAddress] = useState("");
     const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
     const [resolverAddress, setResolverAddress] = useState<string | null>(null);
@@ -27,7 +27,7 @@ function CustomWagmiTest() {
     // Create a Viem public client for Sepolia (where L1Resolver is deployed)
     const publicClient = createPublicClient({
         chain: sepolia,
-        transport: http('https://eth-sepolia.g.alchemy.com/v2/demo')
+        transport: http('https://eth-sepolia.g.alchemy.com/v2/1Cu1tMXhu_2DZWEY_0SogkOrK4ypl3pt')
     });
 
     // Effect to resolve ENS name when it changes
@@ -40,7 +40,8 @@ function CustomWagmiTest() {
 
             try {
                 // Use your custom resolveENSName function
-                const address = await resolveENSName(ensName);
+                const fullName = ensName.endsWith(".lisk.eth") ? ensName : `${ensName}.lisk.eth`
+                const address = await resolveENSName(fullName);
                 setResolvedAddress(address);
                 setResolverAddress(L1Resolver.address);
             } catch (err: any) {
@@ -144,7 +145,7 @@ export default function ENSTestPage() {
         // Get gateway URL from contract
         const getGatewayUrl = async () => {
             try {
-                const rpcProvider = new ethers.JsonRpcProvider("https://eth-sepolia.g.alchemy.com/v2/demo");
+                const rpcProvider = new ethers.JsonRpcProvider("https://eth-sepolia.g.alchemy.com/v2/1Cu1tMXhu_2DZWEY_0SogkOrK4ypl3pt");
                 const resolverContract = new ethers.Contract(
                     L1Resolver.address,
                     L1Resolver.abi,

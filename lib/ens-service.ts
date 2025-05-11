@@ -1,7 +1,8 @@
 import { ethers } from "ethers";
-import { createPublicClient, http, encodeFunctionData, decodeFunctionResult, toHex, hexToBytes } from "viem";
-import { liskSepolia } from "viem/chains";
-import { normalize } from "viem/ens";
+import { createPublicClient, http, toHex } from "viem";
+import { liskSepolia, sepolia, mainnet } from "viem/chains";
+import { namehash, normalize, packetToBytes } from "viem/ens";
+import { Hex } from "viem";
 import { L1Resolver } from "@/abi/L1Resolver";
 import { L2Registry } from "@/abi/L2Registry";
 import { L2Registrar } from '@/abi/L2Registrar';
@@ -11,51 +12,38 @@ const L1_RESOLVER_ADDRESS = L1Resolver.address; // Your L1 resolver on Sepolia
 const L2_REGISTRY_ADDRESS = L2Registry.address; // Your L2 registry on Lisk
 const L2_REGISTRAR_ADDRESS = L2Registrar.address; // Your L2 registrar on Lisk
 const ENS_GATEWAY_URL = "https://ens-gateway.onpaylisk.workers.dev"; // Your gateway URL
-const NETWORK = "liskSepolia";
+const NETWORK = "liskSepolia"; // L2 network
+const NETWORK_L1: NetworkType = "sepolia"; // L1 Ethereum for ENS resolution
 
 
-const publicClient = createPublicClient({
+const publicClient_L2 = createPublicClient({
     chain: liskSepolia,
     transport: http(),
 });
 
-const PROVIDERS: Record<string, string> = {
+const LISK_RPC: Record<string, string> = {
     liskSepolia: "https://rpc.sepolia-api.lisk.com",
     // liskMainnet: "https://rpc.lisk.com",
 };
 
-const provider = new ethers.JsonRpcProvider(PROVIDERS[NETWORK]);
+const provider_L2 = new ethers.JsonRpcProvider(LISK_RPC[NETWORK]);
 
-/**
- * Convert a regular string to 0x-prefixed string
- */
-function toHexString(value: string): `0x${string}` {
-    if (value.startsWith('0x')) {
-        return value as `0x${string}`;
-    }
-    return `0x${value}` as `0x${string}`;
-}
 
-/**
- * Calculate the namehash for an ENS name
- * @param name The ENS name
- * @returns The namehash as bytes32
- */
-function namehash(name: string): `0x${string}` {
-    let node = '0x0000000000000000000000000000000000000000000000000000000000000000';
+// L1 Ethereum Provider & Client (for ENS)
+type NetworkType = 'sepolia' | 'mainnet';
+const ETHEREUM_RPC: Record<NetworkType, string> = {
+    sepolia: process.env.SEPOLIA_RPC_URL ?? '',
+    mainnet: process.env.MAINNET_RPC_URL ?? '',
+};
 
-    if (name) {
-        const labels = normalize(name).split('.');
 
-        for (let i = labels.length - 1; i >= 0; i--) {
-            const labelHash = ethers.keccak256(ethers.toUtf8Bytes(labels[i]));
-            node = ethers.keccak256(ethers.concat([ethers.getBytes(node), ethers.getBytes(labelHash)])
-            );
-        }
-    }
+const publicClient_L1 = createPublicClient({
+    chain: sepolia,
+    transport: http(ETHEREUM_RPC[NETWORK_L1 as NetworkType]),
+});
 
-    return node as `0x${string}`;
-}
+const provider_L1 = new ethers.JsonRpcProvider(ETHEREUM_RPC[NETWORK_L1 as NetworkType]);
+
 
 /**
  * Check if an ENS name is available
@@ -96,7 +84,7 @@ export async function checkENSNameAvailable(ensName: string): Promise<{ availabl
         const registrar = new ethers.Contract(
             L2_REGISTRAR_ADDRESS,
             L2Registrar.abi,
-            provider
+            provider_L2
         );
 
         try {
@@ -195,24 +183,109 @@ export async function registerENSName(ensName: string, address: string): Promise
  */
 export async function resolveENSName(ensName: string): Promise<string | null> {
     try {
-        const normalizedName = normalize(ensName);
+        const cleanName = ensName?.trim().replace(/\u200B|\u00A0/g, ''); // remove zero-width & nbsp
+
+        if (!cleanName || cleanName.includes('..') || cleanName.startsWith('.') || cleanName.endsWith('.')) {
+            throw new Error(`Invalid ENS name: "${ensName}"`);
+        }
+        const normalizedName = normalize(cleanName);
         const node = namehash(normalizedName);
-        const nameBytes = ethers.toUtf8Bytes(normalizedName);
+        console.log('node:', node);
+        const nameBytes = toHex(packetToBytes(normalizedName));
+        console.log('nameBytes:', nameBytes);
 
         const addrSelector = "0x3b3b57de"; // function selector for addr(bytes32)
         const calldata = addrSelector + node.slice(2);
+        console.log('calldata:', calldata);
 
-        const result = await publicClient.readContract({
-            address: L1_RESOLVER_ADDRESS as `0x${string}`,
-            abi: L1Resolver.abi,
-            functionName: "resolve",
-            args: [ethers.hexlify(nameBytes), calldata],
-        });
-        // Extract the address from the returned bytes
-        const resolvedAddress = "0x" + (result as string).slice(66, 106); // skip first 64 bytes (offset)
-        return ethers.getAddress(resolvedAddress); // checksum
-    } catch (error) {
-        console.error("ENS resolution failed:", error);
+        const resolver = new ethers.Contract(
+            L1_RESOLVER_ADDRESS,
+            L1Resolver.abi,
+            provider_L1
+        );
+        const abi = new ethers.AbiCoder();
+        try {
+            // First attempt a direct call to see if we get a direct response
+            const tx = {
+                to: L1_RESOLVER_ADDRESS,
+                data: resolver.interface.encodeFunctionData("resolve", [nameBytes, calldata]),
+            };
+
+            const result = await provider_L1.call(tx);
+
+            console.log("Unexpected success (no OffchainLookup):", result);
+            // Direct call succeeded but we didn't process the result
+            // Since this is unexpected, return null to be safe
+            return null;
+        } catch (error: any) {
+            // Check if this is an OffchainLookup error
+            const errorData = error?.data?.data ?? error?.data;
+            if (errorData?.startsWith('0x556f1830')) {
+                // Parse error data
+                const decodedError = abi.decode(
+                    ['address', 'string[]', 'bytes', 'bytes4', 'bytes'],
+                    '0x' + errorData.slice(10) // Remove the error selector
+                );
+
+                const sender = decodedError[0];
+                const urls = decodedError[1] as string[];
+                const callData = decodedError[2] as string;
+                const callbackFunction = decodedError[3] as string;
+                const extraData = decodedError[4] as string;
+
+                console.log("CCIP-Read triggered:", {
+                    sender,
+                    urls,
+                    callData,
+                    callbackSelector: callbackFunction
+                });
+
+                // Choose gateway URL
+                const gatewayUrl = (urls[0] || ENS_GATEWAY_URL).replace("{sender}", sender).replace("{data}", callData);
+                console.log("Resolve gateway URL:", gatewayUrl);
+
+                // Call the gateway
+                const response = await fetch(gatewayUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ sender, data: callData }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Gateway responded with status: ${response.status}`);
+                }
+
+                const responseData = await response.json();
+                const signedData = responseData.data;
+
+                if (!signedData) {
+                    throw new Error("Gateway did not return valid data");
+                }
+
+                console.log("Got signed data from gateway");
+                console.log("signedData:", signedData);
+                console.log("extraData:", extraData);
+
+                // Call resolveWithProof with gateway result
+                const resolved = await publicClient_L1.readContract({
+                    address: L1_RESOLVER_ADDRESS as `0x${string}`,
+                    abi: L1Resolver.abi,
+                    functionName: "resolveWithProof",
+                    args: [signedData, extraData],
+                });
+
+                // Parse address from returned bytes
+                const [resolvedAddress] = new ethers.AbiCoder().decode(['address'], resolved as string);
+                return resolvedAddress;
+            }
+
+            console.error("ENS resolution failed:", error);
+            return null;
+        }
+    } catch (mainError) {
+        console.error("Unexpected error in ENS resolution:", mainError);
         return null;
     }
 }
