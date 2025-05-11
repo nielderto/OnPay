@@ -4,4 +4,17 @@ compatibility_date = "2024-03-19"
 
 [vars]
 # Default environment variables (override with secrets or .env)
-LISK_SEPOLIA_RPC_URL = "https://sepolia-rpc.lisk.com"
+LISK_SEPOLIA_RPC_URL = "https://rpc.sepolia-api.lisk.com"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ens_gateway_db"
+database_id = "57dace8f-7f70-4d2b-8460-ce12ccb92f29"
+
+
+[observability.logs]
+enabled = true
+
+
+
+
