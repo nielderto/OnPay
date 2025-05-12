@@ -22,7 +22,6 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/send') ||
     pathname.startsWith('/receive') ||
     pathname.startsWith('/topup') ||
-    pathname.startsWith('/username') ||
     pathname.startsWith('/ens-test')) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL('/login', request.url));

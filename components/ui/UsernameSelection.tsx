@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useAccount } from "wagmi"
-import { useRouter } from "next/navigation"
 import { ArrowRight, CheckCircle, XCircle, Loader2 } from "lucide-react"
 import { checkENSNameAvailable, registerENSName } from "@/lib/ens-service"
 import { useForm } from "react-hook-form"
@@ -17,9 +16,12 @@ const usernameSchema = z.object({
 
 type UsernameFormData = z.infer<typeof usernameSchema>
 
-export default function UsernameSelection() {
+interface UsernameSelectionProps {
+    onSuccess?: () => void
+}
+
+export default function UsernameSelection({ onSuccess }: UsernameSelectionProps) {
     const { address } = useAccount()
-    const router = useRouter()
     const [isChecking, setIsChecking] = useState(false)
     const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
     const [isRegistering, setIsRegistering] = useState(false)
@@ -55,25 +57,8 @@ export default function UsernameSelection() {
                 `user${shortAddr}`,
                 `lisk${timestamp}`
             ])
-
-            // Check if user already has an ENS name
-            checkExistingName()
         }
     }, [address])
-
-    const checkExistingName = async () => {
-        if (!address) return
-
-        try {
-            const existingName = await checkENSNameAvailable(address)
-            if (existingName) {
-                // User already has a name, redirect to homepage
-                router.push("/homepage")
-            }
-        } catch (error) {
-            console.error("Error checking existing name:", error)
-        }
-    }
 
     const checkAvailability = async (name: string) => {
         if (!name) return
@@ -116,8 +101,8 @@ export default function UsernameSelection() {
             // Register the name using the ENS service
             await registerENSName(fullName, address)
 
-            // Redirect to homepage
-            router.push("/homepage")
+            // Call onSuccess callback if provided
+            onSuccess?.()
         } catch (error: any) {
             console.error("Error registering ENS name:", error)
             setError(error.message || "Error registering username. Please try again.")

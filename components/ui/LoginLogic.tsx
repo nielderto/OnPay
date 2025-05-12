@@ -9,40 +9,15 @@ import { ArrowRight, Shield } from "lucide-react"
 
 export default function LoginPage() {
   const { open } = useConnectModal()
-  const { isConnected, isConnecting, address } = useAccount()
+  const { isConnected, isConnecting } = useAccount()
   const [isRedirecting, setIsRedirecting] = useState(false)
-  const [hasUsername, setHasUsername] = useState<boolean | null>(null)
 
   useEffect(() => {
-    const checkUsername = async () => {
-      if (address) {
-        try {
-          // Mock check for ENS name - replace with actual ENS check
-          // Example: const hasENS = await checkAddressHasENS(address);
-          const hasENS = localStorage.getItem(`ens-username-${address.toLowerCase()}`) !== null
-          setHasUsername(hasENS)
-        } catch (error) {
-          console.error("Error checking username:", error)
-          setHasUsername(false)
-        }
-      }
-    }
-
-    if (isConnected && address) {
-      checkUsername()
-    }
-  }, [isConnected, address])
-
-  useEffect(() => {
-    if (isConnected && hasUsername !== null) {
+    if (isConnected) {
       setIsRedirecting(true)
-      if (hasUsername) {
-        redirect("/homepage")
-      } else {
-        redirect("/username")
-      }
+      redirect("/homepage")
     }
-  }, [isConnected, hasUsername])
+  }, [isConnected])
 
   if (isConnecting || isRedirecting) {
     return <Loading />
@@ -60,9 +35,7 @@ export default function LoginPage() {
             backgroundSize: "60px 60px",
           }}
         ></div>
-
       </div>
-
 
       <div className="relative z-10 bg-white rounded-xl shadow-lg border border-gray-100 p-8">
         <div className="text-center mb-8">
@@ -100,7 +73,6 @@ export default function LoginPage() {
           <p className="text-sm text-gray-600">Your wallet connects securely without sharing your private keys</p>
         </div>
       </div>
-
 
       <div className="mt-2">© {new Date().getFullYear()} ONPAY. All rights reserved.</div>
     </div>

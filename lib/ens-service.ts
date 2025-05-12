@@ -306,10 +306,10 @@ export async function lookupENSName(address: string): Promise<string | null> {
     }
 }
   
-// export async function lookupENSName(address: string): Promise<string | null> {
-//     try {
-//         // Create a provider for connecting to Lisk Sepolia
-//         const lookupProvider = new ethers.JsonRpcProvider(PROVIDERS[NETWORK]);
+// // export async function lookupENSName(address: string): Promise<string | null> {
+// //     try {
+// //         // Create a provider for connecting to Lisk Sepolia
+// //         const lookupProvider = new ethers.JsonRpcProvider(PROVIDERS[NETWORK]);
 
 //         // Try standard ENS reverse lookup first
 //         const name = await lookupProvider.lookupAddress(address);

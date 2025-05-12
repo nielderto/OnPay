@@ -11,7 +11,7 @@ interface ProfileCardProps {
 
 export default function DevPage({ name, role, imageUrl, showActions = true, socialMedia = [] }: ProfileCardProps) {
     return (
-        <div className="w-full max-w-sm bg-white border border-gray-200 rounded-2xl shadow-sm pt-16">
+        <div className="w-80 max-w-sm bg-white border border-gray-200 rounded-2xl shadow-sm pt-16">
             <div className="flex flex-col items-center pb-10">
                 <div className="relative w-32 h-32 mb-3 rounded-full shadow-lg overflow-hidden">
                     <Image

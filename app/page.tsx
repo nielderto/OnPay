@@ -1,12 +1,10 @@
 import { Suspense } from "react";
 import { DM_Sans } from 'next/font/google';
-import { MoveDown, LogInIcon, UserRoundPlusIcon, SendIcon } from "lucide-react";
-import Image from 'next/image';
+import { MoveDown } from "lucide-react";
 import Link from "next/link";
-import { HyperText } from "@/components/magicui/hyper-text";
 import DevPage from "@/components/cards/DevPage";
-import { TypingAnimation } from "@/components/magicui/typing-animation";
-import Navbar from "@/components/buttons/Navbar";
+import Features from "@/components/landingPage/Features";
+import HowItWorks from "@/components/landingPage/HowItWorks";
 
 const dmSans = DM_Sans({ 
   subsets: ['latin'],
@@ -27,14 +25,19 @@ export default function Home() {
   return (
     <>
       <main className="flex flex-col items-center justify-center min-h-screen px-4 text-center ">
+      <div className="absolute inset-0 -z-10 bg-[#f8fafc]">
+        <div className="absolute inset-0 bg-grid-black/[0.02] -z-10 bg-[size:20px_20px]"></div>
+        <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-white to-transparent"></div>
+        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-white to-transparent"></div>
+      </div>
+
         <section className="max-w-4xl w-full mx-auto">
           <div className="flex flex-col items-center gap-2">
-            <h2 className={`${dmSans.className} text-4xl md:text-8xl font-bold tracking-tight`}>
-              Send Value, Not Gas 
+            <h2 className={`${dmSans.className} text-4xl lg:text-8xl font-bold tracking-tight`}>
+              <span className="text-blue-500">Smart Transfers</span>  for a Digital World
             </h2>
-            <h3 className="text-black text-center mb-6 font-bold text-2xl">
-              Powered by OnPay
-            </h3>
+            <h3 className="text-gray-600 text-center mb-8 mt-10 font-bold text-2xl lg:text-3xl">
+            Effortless payments for the modern age. Send money as easily as sending a text—no technical knowledge required.            </h3>
           </div>
           <Link
             href="/login"
@@ -50,49 +53,10 @@ export default function Home() {
         </section>
       </main>
 
-      <section className="flex flex-col items-center justify-center min-h-screen px-6 pb-10 text-center" aria-label="How it works section">
-        <header className="mb-15 mt-15">
-          <h2 className="font-bold">HOW IT WORKS</h2>
-          <h3 className={`${dmSans.className} font-bold text-2xl md:text-4xl lg:text-5xl`}>
-            Payments done in three steps
-          </h3>
-        </header>
+      <HowItWorks />
+      <Features />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl w-full">
-          <article className="bg-white p-6 md:p-8 rounded-lg border">
-            <div className="flex flex-col items-center">
-              <LogInIcon color="#0055FF" className="w-10 h-10 md:w-12 md:h-12 mb-4" />
-              <h2 className={`${dmSans.className} text-xl md:text-2xl font-bold mb-4`}>Login</h2>
-              <p className="text-gray-600 text-center">
-                Log in using your email, Google, or crypto wallet.
-                New here? We'll set up your wallet instantly — no extra steps.
-              </p>
-            </div>
-          </article>
-
-          <article className="bg-white p-6 md:p-8 rounded-lg border">
-            <div className="flex flex-col items-center">
-              <UserRoundPlusIcon color="#0055FF" className="w-10 h-10 md:w-12 md:h-12 mb-4" />
-              <h2 className={`${dmSans.className} text-xl md:text-2xl font-bold mb-4`}>Add funds</h2>
-              <p className="text-gray-600 text-center">
-                Topup IDRX to your account using bank transfer (BNI, BRI, BCA, etc).
-              </p>
-            </div>
-          </article>
-
-          <article className="bg-white p-6 md:p-8 rounded-lg border">
-            <div className="flex flex-col items-center">
-              <SendIcon color="#0055FF" className="w-10 h-10 md:w-12 md:h-12 mb-4" />
-              <h2 className={`${dmSans.className} text-xl md:text-2xl font-bold mb-4`}>Send</h2>
-              <p className="text-gray-600 text-center">
-                Make transactions using your IDRX and nothing else.
-              </p>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <footer className="w-screen bg-blue-500 text-white py-12">
+      <footer className="w-screen bg-blue-500 text-white py-12 min-h-screen flex items-center justify-center">
         <div className="max-w-6xl mx-auto px-4 text-center">
           <h2 className={`${dmSans.className} text-5xl font-bold mb-8`}>Developed By</h2>
           <Suspense fallback={<DevCardsLoading />}>
