@@ -1,15 +1,19 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAccount } from "wagmi"
+import { useAccount, useEnsName } from "wagmi"
 import { lookupENSName } from "@/lib/ens-service"
 import UsernameSelection from "./UsernameSelection"
 import { X } from "lucide-react"
+
 
 export default function UsernameSelectionPopup() {
     const { address } = useAccount()
     const [showPopup, setShowPopup] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
+    const { data: ensName } = useEnsName({
+        address: address,
+    })
 
     useEffect(() => {
         const checkUsername = async () => {
@@ -32,7 +36,15 @@ export default function UsernameSelectionPopup() {
         checkUsername()
     }, [address])
 
-    if (isLoading || !showPopup) {
+    if (isLoading) {
+        return null
+    }
+
+    if (ensName) {
+        return <span>{ensName}</span>
+    }
+
+    if (!showPopup) {
         return null
     }
 

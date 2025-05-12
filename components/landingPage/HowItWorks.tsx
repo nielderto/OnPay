@@ -19,7 +19,7 @@ export default function HowItWorks() {
         }
     ]
     return (
-        <section className="py-24 bg-white relative overflow-hidden h-screen">
+        <section className="py-24 bg-white relative h-screen">
             <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <p className="text-sm font-medium text-blue-600 uppercase tracking-wider mb-2">HOW IT WORKS</p>

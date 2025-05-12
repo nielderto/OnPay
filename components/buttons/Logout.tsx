@@ -1,14 +1,17 @@
 'use client';
 import { LogOut } from "lucide-react";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useDisconnect } from "wagmi";  
+import Cookies from "js-cookie";
 
 export default function Logout() {
     const { disconnect } = useDisconnect();
+    const router = useRouter();
 
     const handleLogout = () => {
         disconnect();
-        redirect('/');
+        Cookies.remove("isConnected", {path:"/"})
+        router.push('/');
     };
 
     return (

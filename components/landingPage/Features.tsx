@@ -25,7 +25,7 @@ export default function Features() {
     ]
 
     return (
-        <section className="py-24 bg-gray-50 relative overflow-hidden h-screen">
+        <section className="py-24 bg-gray-50 relative overflow-hidden">
             <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-16">
           <p className="text-sm font-medium text-blue-600 uppercase tracking-wider mb-2">WHY CHOOSE ONPAY</p>

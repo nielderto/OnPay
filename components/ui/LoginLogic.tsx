@@ -2,24 +2,23 @@
 
 import { useConnectModal } from "@xellar/kit"
 import { useAccount } from "wagmi"
-import { useEffect, useState } from "react"
-import { redirect } from "next/navigation"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Loading from "@/app/loading"
 import { ArrowRight, Shield } from "lucide-react"
 
 export default function LoginPage() {
   const { open } = useConnectModal()
   const { isConnected, isConnecting } = useAccount()
-  const [isRedirecting, setIsRedirecting] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     if (isConnected) {
-      setIsRedirecting(true)
-      redirect("/homepage")
+      router.push("/homepage")
     }
-  }, [isConnected])
+  }, [isConnected, router])
 
-  if (isConnecting || isRedirecting) {
+  if (isConnecting) {
     return <Loading />
   }
 

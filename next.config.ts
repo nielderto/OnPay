@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     IDRX_SECRET_KEY: process.env.IDRX_SECRET_KEY,
     SEPOLIA_RPC_URL: process.env.SEPOLIA_RPC_URL,
   },
+  devIndicators: false,
 };
 
 export default nextConfig;
