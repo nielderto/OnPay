@@ -158,14 +158,14 @@ export async function registerENSName(ensName: string, address: string): Promise
         const receipt = await tx.wait();
         console.log(`Transaction confirmed: ${receipt.hash}`);
 
-        // Store in localStorage as a quick fallback for reverse lookup
-        try {
-            if (typeof localStorage !== 'undefined') {
-                localStorage.setItem(`ens-username-${address.toLowerCase()}`, normalized);
-                console.log(`Stored ${normalized} for ${address} in localStorage`);
-            }
-        } catch (storageError) {
-            console.warn("Could not store name in localStorage:", storageError);
+        const response = await fetch('https://ens-gateway.onpaylisk.workers.dev/api/ens-sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: normalized, address }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to sync ENS record: ${response.statusText}`);
         }
 
         console.log(`Successfully registered ${normalized} to ${address}`);
@@ -295,6 +295,17 @@ export async function resolveENSName(ensName: string): Promise<string | null> {
  * @param address The Ethereum address to look up
  * @returns Promise<string> The ENS name or null if not found
  */
+export async function lookupENSName(address: string): Promise<string | null> {
+    try {
+      const res = await fetch(`https://ens-gateway.onpaylisk.workers.dev/api/ens-lookup/${address}`)
+      const data = await res.json()
+      return data.name || null
+    } catch (error) {
+      console.error("Error looking up ENS name:", error)
+      return null
+    }
+}
+  
 // export async function lookupENSName(address: string): Promise<string | null> {
 //     try {
 //         // Create a provider for connecting to Lisk Sepolia
