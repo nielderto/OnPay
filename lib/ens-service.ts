@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { createPublicClient, http, toHex } from "viem";
+import { createPublicClient, decodeDeployData, http, toHex } from "viem";
 import { liskSepolia, sepolia, mainnet } from "viem/chains";
 import { namehash, normalize, packetToBytes } from "viem/ens";
 import { Hex } from "viem";
@@ -43,7 +43,6 @@ const publicClient_L1 = createPublicClient({
 });
 
 const provider_L1 = new ethers.JsonRpcProvider(ETHEREUM_RPC[NETWORK_L1 as NetworkType]);
-
 
 /**
  * Check if an ENS name is available
@@ -298,36 +297,26 @@ export async function resolveENSName(ensName: string): Promise<string | null> {
 export async function lookupENSName(address: string): Promise<string | null> {
     try {
       const res = await fetch(`https://ens-gateway.onpaylisk.workers.dev/api/ens-lookup/${address}`)
-      const data = await res.json()
-      return data.name || null
+      if (!res.ok) {
+        const errText = await res.text()
+        throw new Error(`HTTP ${res.status} – ${errText}`)
+      }
+  
+      const data = await res.json();
+      const rawName = data.name || null;
+  
+      if (!rawName) {
+        console.log(`❌ No ENS name found for ${address}`);
+        return null;
+      }
+  
+      console.log(`✅ ENS name from gateway: ${rawName}`);
+      return rawName;
     } catch (error) {
       console.error("Error looking up ENS name:", error)
       return null
     }
 }
-  
-// // export async function lookupENSName(address: string): Promise<string | null> {
-// //     try {
-// //         // Create a provider for connecting to Lisk Sepolia
-// //         const lookupProvider = new ethers.JsonRpcProvider(PROVIDERS[NETWORK]);
-
-//         // Try standard ENS reverse lookup first
-//         const name = await lookupProvider.lookupAddress(address);
-//         if (name && name.endsWith('.lisk.eth')) {
-//             return name;
-//         }
-
-//         // If no standard lookup, check local storage as fallback
-//         const localName = typeof localStorage !== 'undefined'
-//             ? localStorage.getItem(`ens-username-${address.toLowerCase()}`)
-//             : null;
-
-//         return localName;
-//     } catch (error) {
-//         console.error("Error looking up ENS name:", error);
-//         return null;
-//     }
-// }
 
 /**
  * A more complete implementation for production would include these functions:

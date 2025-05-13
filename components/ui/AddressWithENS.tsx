@@ -35,7 +35,7 @@ export const AddressWithENS = ({ address }: AddressWithENSProps) => {
       isMounted = false;
     };
   }, [address]);
-
+  
   if (!address) {
     return <span>Unknown Address</span>;
   }
