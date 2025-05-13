@@ -1,17 +1,30 @@
 'use client'
 
-import { useAccount, useBalance } from "wagmi";
-import { liskSepolia } from "viem/chains";
+import { useAccount } from "wagmi";
+import { useQuery } from '@tanstack/react-query';
+
+interface BalanceData {
+    formatted: string;
+    value: string;
+    cached: boolean;
+}
 
 export default function Balance({ color = 'black' }){
     const {address} = useAccount();
-    const {data: balance} = useBalance({
-        address: address as `0x${string}`,
-        chainId: liskSepolia.id,
-        token: '0xD63029C1a3dA68b51c67c6D1DeC3DEe50D681661',
-        query: {
-            refetchInterval: 2000, // Refetch every 2 seconds
-        }
+    
+    const {data: balance, isLoading} = useQuery<BalanceData>({
+        queryKey: ['balance', address],
+        queryFn: async () => {
+            const response = await fetch(`/api/balance?address=${address}`);
+            if (!response.ok) throw new Error('Failed to fetch balance');
+            return response.json();
+        },
+        enabled: !!address,
+        staleTime: 10000, // Consider data fresh for 10 seconds
+        gcTime: 30000, // Keep in cache for 30 seconds
+        refetchInterval: 2000, // Refetch every 2 seconds
+        refetchOnWindowFocus: false, // Don't refetch when window regains focus
+        retry: 1, // Only retry once on failure
     });
 
     const formattedBalance = balance ? 
@@ -22,7 +35,16 @@ export default function Balance({ color = 'black' }){
 
     return (
         <div className={`text-${color}`}>
-            {formattedBalance} IDRX
+            {isLoading ? (
+                <span className="animate-pulse">Loading...</span>
+            ) : (
+                <>
+                    {formattedBalance} IDRX
+                    {balance?.cached && (
+                        <span className="text-xs text-gray-400 ml-1">(cached)</span>
+                    )}
+                </>
+            )}
         </div>
     );
 }

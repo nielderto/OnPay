@@ -6,22 +6,51 @@ import Link from "next/link";
 import SpendingChart from "@/components/ui/SpendingChart";
 import UsernameSelectionPopup from "@/components/ui/UsernameSelectionPopup";
 import UsernameSelection from "@/components/ui/UsernameSelection";
+import { SuspenseBoundary } from "@/components/ui/SuspenseBoundary";
+
+// Separate critical and non-critical components
+const CriticalComponents = () => (
+    <>
+        <UsernameSelectionPopup />
+        <SuspenseBoundary fallback={<div>Loading dashboard...</div>}>
+            <DashboardCard />
+        </SuspenseBoundary>
+    </>
+);
+
+const NonCriticalComponents = () => (
+    <>
+        <Link 
+            href="/ens-test" 
+            className="bg-blue-100 text-blue-700 px-4 py-2 rounded-md hover:bg-blue-200 transition-colors"
+            prefetch={false} // Disable prefetching for non-critical links
+        >
+            Test ENS Resolution
+        </Link>
+        <SuspenseBoundary fallback={<div>Loading chart...</div>}>
+            <SpendingChart />
+        </SuspenseBoundary>
+        <SuspenseBoundary fallback={<div>Loading transactions...</div>}>
+            <TransactionHistory />
+        </SuspenseBoundary>
+        <SuspenseBoundary fallback={<div>Loading username selection...</div>}>
+            <UsernameSelection />
+        </SuspenseBoundary>
+    </>
+);
 
 export default function Homepage() {
     return (
         <div>
             <div className="flex flex-col items-center py-8 gap-6 pb-24">
-                <UsernameSelectionPopup />
-                <Suspense fallback={<div>Loading...</div>}>
-                    <DashboardCard />
-                    <Link href="/ens-test" className="bg-blue-100 text-blue-700 px-4 py-2 rounded-md hover:bg-blue-200 transition-colors">
-                        Test ENS Resolution
-                    </Link>
-                    <SpendingChart />
-                    <TransactionHistory />
-                    <UsernameSelection />
+                {/* Load critical components first */}
+                <CriticalComponents />
+                
+                {/* Load non-critical components with lower priority */}
+                <Suspense fallback={null}>
+                    <NonCriticalComponents />
                 </Suspense>
             </div>
         </div>
-    )
+    );
 }

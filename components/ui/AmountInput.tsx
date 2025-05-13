@@ -16,7 +16,7 @@ export function AmountInput({ value, onChange, hasError, isProcessing }: AmountI
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="0.0"
+        placeholder="eg. 15"
         className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
           hasError ? 'border-red-500 focus:ring-red-500 bg-red-50' : 'border-gray-300'
         }`}

@@ -4,6 +4,7 @@ import { parseUnits, getContract, erc20Abi } from 'viem';
 import { idrxPayConfig } from '@/abi/idrxPay';
 import toast from 'react-hot-toast';
 import { metaTxForward } from '@/abi/metatxfoward';
+import { resolveENSName } from '@/lib/ens-service';
 
 export const useMetaTx = (recipientAddress: string, amount: string, decimals: number) => {
   const { address } = useAccount();
@@ -215,6 +216,17 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
 
     setIsLoading(true);
 
+    // Resolve ENS name to address if necessary
+    let toAddress = recipientAddress;
+    if (!toAddress.startsWith('0x')) {
+      const ensNameToResolve = toAddress.includes('.') ? toAddress : `${toAddress}.lisk.eth`;
+      const resolved = await resolveENSName(ensNameToResolve);
+      if (!resolved) {
+        throw new Error(`Could not resolve ENS name: ${ensNameToResolve}`);
+      }
+      toAddress = resolved;
+    }
+
     try {
       const currentNonce = await publicClient.readContract({
         address: metaTxForwarderContract,
@@ -229,7 +241,7 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
         functionName: "getMessageHash",
         args: [
           address,
-          recipientAddress as `0x${string}`,
+          toAddress as `0x${string}`,
           parseUnits(amount, tokenDecimals),
           idrxPayContract,
           currentNonce,
@@ -245,7 +257,7 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sender: address,
-          receiver: recipientAddress,
+          receiver: toAddress,
           amount,
           signature,
         }),

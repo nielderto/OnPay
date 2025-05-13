@@ -1,15 +1,15 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAccount } from 'wagmi';
-import { isAddress } from 'viem';
 import MetaTxProvider from './MetaTxProvider';
 import { TransactionStatus } from './TransactionStatus';
 import { RecipientInput } from './RecipientInput';
 import { AmountInput } from './AmountInput';
 import { BalanceDisplay } from './BalanceDisplay';
 import { TransactionReceipt } from './TransactionReceipt';
+import { checkENSNameAvailable } from '@/lib/ens-service';
 
 type FormData = {
   recipientAddress: string;
@@ -23,6 +23,8 @@ export default function SendForm() {
   const [errorMessage, setErrorMessage] = useState('');
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<{ recipientAddress: string; amount: string } | null>(null);
+  const [nameRegistered, setNameRegistered] = useState<boolean>(false);
+  const [isCheckingName, setIsCheckingName] = useState<boolean>(false);
 
   const {
     register,
@@ -41,10 +43,35 @@ export default function SendForm() {
 
   const recipientAddress = watch('recipientAddress');
   const amount = watch('amount');
-  const isValidAddress = isAddress(recipientAddress);
+  const isValidRecipient = Boolean(recipientAddress.trim());
   const isOwnAddress = recipientAddress.toLowerCase() === address?.toLowerCase();
   const numAmount = parseFloat(amount);
   const hasAmountError = !isNaN(numAmount) && numAmount < 0.0001;
+
+  // Debounced ENS lookup: only validate after user stops typing
+  useEffect(() => {
+    if (!recipientAddress.trim() || isOwnAddress) {
+      setNameRegistered(false);
+      setIsCheckingName(false);
+      return;
+    }
+    setIsCheckingName(true);
+    const handler = setTimeout(async () => {
+      const fullName = recipientAddress.includes('.')
+        ? recipientAddress.trim()
+        : `${recipientAddress.trim()}.lisk.eth`;
+      try {
+        const result = await checkENSNameAvailable(fullName);
+        // registered if not available
+        setNameRegistered(!result.available);
+      } catch {
+        setNameRegistered(false);
+      } finally {
+        setIsCheckingName(false);
+      }
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [recipientAddress, isOwnAddress]);
 
   const handleAddressChange = (newAddress: string) => {
     setValue('recipientAddress', newAddress, { shouldValidate: true });
@@ -73,7 +100,7 @@ export default function SendForm() {
   };
 
   const onSubmit = (data: FormData) => {
-    if (!isValidAddress || hasAmountError) {
+    if (!isValidRecipient || hasAmountError) {
       setTransactionStatus('error');
       setErrorMessage('Please fix the form errors before submitting');
       return;
@@ -121,9 +148,10 @@ export default function SendForm() {
           <RecipientInput
             value={recipientAddress}
             onChange={handleAddressChange}
-            isValid={isValidAddress}
+            isValid={nameRegistered}
             isOwnAddress={isOwnAddress}
             isProcessing={isProcessing}
+            isCheckingName={isCheckingName}
           />
 
           <AmountInput
@@ -135,7 +163,7 @@ export default function SendForm() {
 
           <BalanceDisplay />
 
-          {isValidAddress && amount && parseFloat(amount) > 0 && !hasAmountError && (
+          {recipientAddress.trim() && amount && parseFloat(amount) > 0 && !hasAmountError && (
             <div className="mt-4 sm:mt-6 p-3 sm:p-5 bg-blue-50 rounded-lg border border-blue-100">
               <MetaTxProvider
                 recipientAddress={recipientAddress}

@@ -33,7 +33,7 @@ export function TransactionReceipt({ recipientAddress, amount, onClose }: Transa
             <p className="text-lg font-medium">{amount} ETH</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500 mb-1">Recipient Address</p>
+            <p className="text-sm text-gray-500 mb-1">Recipient Username</p>
             <p className="text-sm font-mono break-all">{recipientAddress}</p>
           </div>
         </div>

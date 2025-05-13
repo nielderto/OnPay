@@ -1,229 +1,271 @@
 "use client"
-import { useEffect, useRef, useState } from 'react'
-import ApexCharts from 'apexcharts'
-import { useTransactions } from '../../hooks/useTransactions'
+import { useState, useMemo } from "react";
+import dynamic from 'next/dynamic';
+import { useTransactions } from "../../hooks/useTransactions";
+import { useQuery } from '@tanstack/react-query';
+import type { ApexOptions } from 'apexcharts';
+import { useAccount } from "wagmi";
+import { formatUnits } from "viem";
+
+const Chart = dynamic(() => import('react-apexcharts').then(mod => mod.default), { 
+  ssr: false,
+  loading: () => <div className="h-[300px] flex items-center justify-center">Loading chart...</div>
+});
+
+interface Transaction {
+  value: string;
+  timestamp: number;
+  type: "received" | "sent";
+  tokenDecimal?: string;
+}
+
+interface TransactionStats {
+  totalSent: number;
+  totalReceived: number;
+  last7DaysData: {
+    dates: string[];
+    sentData: number[];
+    receivedData: number[];
+  };
+}
+
+interface UseTransactionsResult {
+  transactions: Transaction[];
+  isLoading: boolean;
+  isConnected: boolean;
+  stats: TransactionStats;
+  address?: string;
+}
+
+const fetchTransactions = async (address: string): Promise<Transaction[]> => {
+  try {
+    const url = `https://sepolia-blockscout.lisk.com/api?module=account&action=tokentx&address=${address}&contractaddress=0xD63029C1a3dA68b51c67c6D1DeC3DEe50D681661&page=1&offset=20&sort=desc`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data && data.status === "1" && Array.isArray(data.result)) {
+      return data.result.map((tx: any) => ({
+        value: tx.value,
+        timestamp: parseInt(tx.timeStamp),
+        type: tx.to.toLowerCase() === address.toLowerCase() ? "received" : "sent",
+        tokenDecimal: tx.tokenDecimal || "18"
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
+    return [];
+  }
+};
+
+const processChartData = (transactions: Transaction[]) => {
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    return date.toISOString().split('T')[0];
+  }).reverse();
+
+  const dailyData = last7Days.map(date => {
+    const dayTransactions = transactions.filter(tx => {
+      const txDate = new Date(tx.timestamp * 1000).toISOString().split('T')[0];
+      return txDate === date;
+    });
+
+    const sent = dayTransactions
+      .filter(tx => tx.type === "sent")
+      .reduce((sum, tx) => {
+        const decimals = parseInt(tx.tokenDecimal || "18");
+        const value = Number(formatUnits(BigInt(tx.value), decimals));
+        console.log('Sent transaction:', { raw: tx.value, formatted: value, decimals });
+        return sum + value;
+      }, 0);
+
+    const received = dayTransactions
+      .filter(tx => tx.type === "received")
+      .reduce((sum, tx) => {
+        const decimals = parseInt(tx.tokenDecimal || "18");
+        const value = Number(formatUnits(BigInt(tx.value), decimals));
+        console.log('Received transaction:', { raw: tx.value, formatted: value, decimals });
+        return sum + value;
+      }, 0);
+
+    return { sent, received };
+  });
+
+  console.log('Processed daily data:', dailyData);
+
+  return {
+    dates: last7Days.map(date => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+    sent: dailyData.map(d => d.sent),
+    received: dailyData.map(d => d.received)
+  };
+};
 
 export default function SpendingChart() {
-    const sentChartRef = useRef<HTMLDivElement>(null);
-    const receivedChartRef = useRef<HTMLDivElement>(null);
-    const { transactions, isLoading, isConnected, stats } = useTransactions();
-    const [selectedType, setSelectedType] = useState<'sent' | 'received'>('sent');
+  const [selectedType, setSelectedType] = useState<"all" | "sent" | "received">("all");
+  const { address } = useAccount();
+  const { isConnected } = useTransactions();
 
-    useEffect(() => {
-        let currentChart: ApexCharts | undefined;
+  const { data: transactions = [], isLoading } = useQuery({
+    queryKey: ['transactions', address],
+    queryFn: () => fetchTransactions(address as string),
+    enabled: !!address && isConnected,
+    staleTime: 30000, // 30 seconds
+    gcTime: 60000, // 1 minute
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
 
-        if ((sentChartRef.current || receivedChartRef.current) && transactions.length > 0) {
-            // Find the maximum value among both sent and received data
-            const rawMaxY = Math.max(
-                ...stats.last7DaysData.sentData,
-                ...stats.last7DaysData.receivedData,
-                1 // fallback to 1 to avoid 0 max
-            );
-            // Add a larger margin to make small spikes more visible
-            const maxY = rawMaxY > 0 ? rawMaxY * 1.5 : 1;
+  console.log('Raw transactions:', transactions);
 
-            const baseOptions = {
-                chart: {
-                    height: "100%",
-                    maxWidth: "100%",
-                    type: "area",
-                    fontFamily: "Inter, sans-serif",
-                    dropShadow: {
-                        enabled: false,
-                    },
-                    toolbar: {
-                        show: false,
-                    },
-                    animations: {
-                        enabled: false
-                    }
-                },
-                tooltip: {
-                    enabled: true,
-                    x: {
-                        show: false,
-                    },
-                },
-                fill: {
-                    type: "gradient",
-                    gradient: {
-                        opacityFrom: 0.55,
-                        opacityTo: 0,
-                    },
-                },
-                dataLabels: {
-                    enabled: false,
-                },
-                stroke: {
-                    width: 6,
-                },
-                grid: {
-                    show: false,
-                    strokeDashArray: 4,
-                    padding: {
-                        left: 2,
-                        right: 2,
-                        top: 0
-                    },
-                },
-                xaxis: {
-                    categories: stats.last7DaysData.dates,
-                    labels: {
-                        show: false,
-                    },
-                    axisBorder: {
-                        show: false,
-                    },
-                    axisTicks: {
-                        show: false,
-                    },
-                },
-                yaxis: {
-                    show: true,
-                    min: 0,
-                    max: maxY,
-                    forceNiceScale: false,
-                    labels: { show: false },
-                    axisBorder: { show: false },
-                    axisTicks: { show: false },
-                },
-            };
+  const chartData = useMemo(() => processChartData(transactions), [transactions]);
 
-            // Destroy any existing chart
-            if (currentChart) {
-                currentChart.destroy();
-                currentChart = undefined;
-            }
-
-            // Create new chart based on selected type
-            const chartOptions = selectedType === 'sent' 
-                ? {
-                    ...baseOptions,
-                    colors: ["#EF4444"],
-                    fill: {
-                        ...baseOptions.fill,
-                        gradient: {
-                            ...baseOptions.fill.gradient,
-                            shade: "#EF4444",
-                            gradientToColors: ["#EF4444"],
-                        },
-                    },
-                    series: [{
-                        name: "Sent",
-                        data: stats.last7DaysData.sentData,
-                    }],
-                }
-                : {
-                    ...baseOptions,
-                    colors: ["#10B981"],
-                    fill: {
-                        ...baseOptions.fill,
-                        gradient: {
-                            ...baseOptions.fill.gradient,
-                            shade: "#10B981",
-                            gradientToColors: ["#10B981"],
-                        },
-                    },
-                    series: [{
-                        name: "Received",
-                        data: stats.last7DaysData.receivedData,
-                    }],
-                };
-
-            const chartElement = selectedType === 'sent' ? sentChartRef.current : receivedChartRef.current;
-            if (chartElement) {
-                currentChart = new ApexCharts(chartElement, chartOptions);
-                currentChart.render();
-            }
-
-            return () => {
-                if (currentChart) {
-                    currentChart.destroy();
-                    currentChart = undefined;
-                }
-            };
+  const options: ApexOptions = useMemo(() => ({
+    chart: {
+      type: 'area',
+      toolbar: {
+        show: false
+      },
+      zoom: {
+        enabled: false
+      },
+      animations: {
+        enabled: true,
+        dynamicAnimation: {
+          enabled: true,
+          speed: 350
         }
-    }, [transactions, stats, selectedType]);
-
-    if (!isConnected) {
-        return (
-            <div className="p-4 text-gray-500 text-center">
-                Please connect your wallet to view transaction charts
-            </div>
-        );
+      }
+    },
+    dataLabels: {
+      enabled: false
+    },
+    stroke: {
+      curve: 'smooth',
+      width: 2
+    },
+    xaxis: {
+      categories: chartData.dates,
+      labels: {
+        style: {
+          colors: '#6B7280'
+        }
+      }
+    },
+    yaxis: {
+      labels: {
+        style: {
+          colors: '#6B7280'
+        },
+        formatter: (value) => `${value.toFixed(2)} IDRX`
+      }
+    },
+    tooltip: {
+      theme: 'light',
+      y: {
+        formatter: (value) => `${value.toFixed(2)} IDRX`
+      }
+    },
+    colors: selectedType === "received" ? ['#10B981'] : selectedType === "sent" ? ['#EF4444'] : ['#EF4444', '#10B981'],
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shadeIntensity: 1,
+        opacityFrom: 0.7,
+        opacityTo: 0.2,
+        stops: [0, 90, 100]
+      }
+    },
+    states: {
+      hover: {
+        filter: {
+          type: 'lighten',
+          value: 0.1
+        }
+      },
+      active: {
+        filter: {
+          type: 'darken',
+          value: 0.35
+        }
+      }
     }
+  }), [chartData.dates, selectedType]);
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-        );
+  const series = useMemo(() => {
+    const data = [];
+    if (selectedType === "all" || selectedType === "sent") {
+      data.push({
+        name: 'Sent',
+        data: chartData.sent
+      });
     }
-
-    if(transactions.length === 0){
-        return (
-            <div className="p-4 text-gray-500 text-center bg-white rounded-lg shadow-sm md:p-6 w-[25rem] lg:w-[55rem] mx-auto">
-                Spending cannot be tracked for this week as there are no transactions.
-            </div>
-        );
+    if (selectedType === "all" || selectedType === "received") {
+      data.push({
+        name: 'Received',
+        data: chartData.received
+      });
     }
+    return data;
+  }, [selectedType, chartData.sent, chartData.received]);
 
+  if (isLoading) {
     return (
-        <div className="w-[25rem] lg:w-[55rem] mx-auto">
-            {selectedType === 'sent' ? (
-                <div className="bg-white rounded-lg shadow-sm dark:bg-gray-800 p-4 md:p-6">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-base font-normal text-gray-500 dark:text-gray-400">This week's transfer</p>
-                            <h5 className="leading-none text-3xl font-bold text-gray-900 dark:text-white pb-2">
-                                {stats.totalSent.toFixed(2)} IDRX
-                            </h5>
-                        </div>
-                        <div className="flex flex-col items-end">
-                            <div className="flex items-center px-2.5 py-0.5 text-base font-semibold text-red-500 text-center mb-2">
-                                Sent
-                            </div>
-                            <select
-                                className="border rounded px-3 py-1 text-sm"
-                                value={selectedType}
-                                onChange={e => setSelectedType(e.target.value as 'sent' | 'received')}
-                            >
-                                <option value="sent">Sent</option>
-                                <option value="received">Received</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div ref={sentChartRef} id="sent-chart"></div>
-                </div>
-            ) : (
-                <div className="bg-white rounded-lg shadow-sm dark:bg-gray-800 p-4 md:p-6">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-base font-normal text-gray-500 dark:text-gray-400">This week's received </p>
-                            <h5 className="leading-none text-3xl font-bold text-gray-900 dark:text-white pb-2">
-                                {stats.totalReceived.toFixed(2)} IDRX
-                            </h5>
-                        </div>
-                        <div className="flex flex-col items-end">
-                            <div className="flex items-center px-2.5 py-0.5 text-base font-semibold text-green-500 text-center mb-2">
-                                Received
-                            </div>
-                            <select
-                                className="border rounded px-3 py-1 text-sm"
-                                value={selectedType}
-                                onChange={e => setSelectedType(e.target.value as 'sent' | 'received')}
-                            >
-                                <option value="sent">Sent</option>
-                                <option value="received">Received</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div ref={receivedChartRef} id="received-chart"></div>
-                </div>
-            )}
-        </div>
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
     );
+  }
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-6 w-[55rem]">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-semibold">Spending Overview</h2>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setSelectedType("all")}
+            className={`px-3 py-1 rounded-full text-sm ${
+              selectedType === "all"
+                ? "bg-blue-100 text-blue-600"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setSelectedType("sent")}
+            className={`px-3 py-1 rounded-full text-sm ${
+              selectedType === "sent"
+                ? "bg-red-100 text-red-600"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            Sent
+          </button>
+          <button
+            onClick={() => setSelectedType("received")}
+            className={`px-3 py-1 rounded-full text-sm ${
+              selectedType === "received"
+                ? "bg-green-100 text-green-600"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            Received
+          </button>
+        </div>
+      </div>
+      <div className="h-[300px]">
+        {typeof window !== 'undefined' && (
+          <Chart
+            options={options}
+            series={series}
+            type="area"
+            height="100%"
+            width="100%"
+          />
+        )}
+      </div>
+    </div>
+  );
 }
 
 

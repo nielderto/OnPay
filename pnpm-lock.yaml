@@ -77,6 +77,9 @@ importers:
       react:
         specifier: ^19.0.0
         version: 19.1.0
+      react-apexcharts:
+        specifier: ^1.7.0
+        version: 1.7.0(apexcharts@3.46.0)(react@19.1.0)
       react-device-mockup:
         specifier: ^1.0.0
         version: 1.0.0(react@19.1.0)
@@ -3048,6 +3051,12 @@ packages:
   range-parser@1.2.1:
     resolution: {integrity: sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==}
     engines: {node: '>= 0.6'}
+
+  react-apexcharts@1.7.0:
+    resolution: {integrity: sha512-03oScKJyNLRf0Oe+ihJxFZliBQM9vW3UWwomVn4YVRTN1jsIR58dLWt0v1sb8RwJVHDMbeHiKQueM0KGpn7nOA==}
+    peerDependencies:
+      apexcharts: '>=4.0.0'
+      react: '>=0.13'
 
   react-device-mockup@1.0.0:
     resolution: {integrity: sha512-rtLHqMdzs7FsnvYO7yCLbqvJYw8BmHEk6XsMHDQe4sBRU/SXPB3nofpjjXT3Me+MR2ZE3qsa1bVtASLRZwQO9g==}
@@ -7361,6 +7370,12 @@ snapshots:
   radix3@1.1.2: {}
 
   range-parser@1.2.1: {}
+
+  react-apexcharts@1.7.0(apexcharts@3.46.0)(react@19.1.0):
+    dependencies:
+      apexcharts: 3.46.0
+      prop-types: 15.8.1
+      react: 19.1.0
 
   react-device-mockup@1.0.0(react@19.1.0):
     dependencies:

@@ -1,9 +1,12 @@
 'use client'
 import { Send, Copy, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTransactions } from "../../hooks/useTransactions";
 import { formatUnits } from "viem";
 import axios from "axios";
+import { AddressWithENS } from "../ui/AddressWithENS";
+import { useQuery } from '@tanstack/react-query';
+import { useAccount } from "wagmi";
 
 interface Transaction {
   hash: string;
@@ -62,15 +65,28 @@ const formatDate = (timestamp: number) => {
 export const TransactionHistory = () => {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [showAll, setShowAll] = useState(false);
-  const { transactions, isLoading, isConnected } = useTransactions();
+  const { transactions: existingTransactions, isConnected } = useTransactions();
+  const { address } = useAccount();
 
-  const filteredTransactions = transactions.filter(tx => {
-    if (activeFilter === "all") return true;
-    if (activeFilter === "pending") return tx.status === "pending";
-    return tx.type === activeFilter;
+  const { data: transactions = [], isLoading } = useQuery({
+    queryKey: ['transactions', address],
+    queryFn: () => fetchTransactions(address as string),
+    enabled: !!address,
+    staleTime: 30000, // 30 seconds
+    gcTime: 60000, // 1 minute
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-  const displayedTransactions = showAll ? filteredTransactions : filteredTransactions.slice(0, 3);
+  const filteredTransactions = useMemo(() => 
+    transactions.filter(tx => {
+      if (activeFilter === "all") return true;
+      if (activeFilter === "pending") return tx.status === "pending";
+      return tx.type === activeFilter;
+    }), [transactions, activeFilter]);
+
+  const displayedTransactions = useMemo(() => 
+    showAll ? filteredTransactions : filteredTransactions.slice(0, 3),
+    [filteredTransactions, showAll]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -168,7 +184,7 @@ export const TransactionHistory = () => {
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
                     <span className="text-gray-900">
-                      {tx.type === "received" ? "From" : "To"} {tx.type === "received" ? tx.from.slice(0, 6) : tx.to.slice(0, 6)}...{tx.type === "received" ? tx.from.slice(-4) : tx.to.slice(-4)}
+                      {tx.type === "received" ? "From" : "To"} <AddressWithENS address={tx.type === "received" ? tx.from : tx.to} />
                     </span>
                     <span className="px-2 py-0.5 bg-gray-100 rounded text-xs">
                       {tx.status}
@@ -191,23 +207,27 @@ export const TransactionHistory = () => {
             </div>
             <div className="mt-4 pt-4 flex items-center gap-2 border-t border-gray-200">
               <div className="text-sm text-gray-500">
-                TX: {tx.hash.slice(0, 8)}...{tx.hash.slice(-4)}
+                TX: {tx.hash ? `${tx.hash.slice(0, 8)}...${tx.hash.slice(-4)}` : 'N/A'}
               </div>
               <div className="flex gap-4 ml-auto">
-                <button
-                  onClick={() => copyToClipboard(tx.hash)}
-                  className="flex items-center text-gray-500 hover:text-gray-700"
-                >
-                  <Copy className="h-4 w-4 mr-1" />
-                  Copy
-                </button>
-                <button
-                  onClick={() => openInExplorer(tx.hash)}
-                  className="flex items-center text-gray-500 hover:text-gray-700"
-                >
-                  <ExternalLink className="h-4 w-4 mr-1" />
-                  Explorer
-                </button>
+                {tx.hash && (
+                  <>
+                    <button
+                      onClick={() => copyToClipboard(tx.hash)}
+                      className="flex items-center text-gray-500 hover:text-gray-700"
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Copy
+                    </button>
+                    <button
+                      onClick={() => openInExplorer(tx.hash)}
+                      className="flex items-center text-gray-500 hover:text-gray-700"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Explorer
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

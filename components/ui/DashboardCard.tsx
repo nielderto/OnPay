@@ -5,9 +5,10 @@ import Link from "next/link";
 import Address from "../data/Address";
 import { useState } from "react";
 import UserGreeting from "../UserGreeting";
-
+import { useAccount } from "wagmi";
 export default function DashboardCard() {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const { address } = useAccount();
   
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -31,7 +32,7 @@ export default function DashboardCard() {
 
   return (
     <div className="relative flex flex-col items-center ">
-      <UserGreeting username="nielderto" />
+      {address && <UserGreeting address={address} />}
       <div className="w-[26rem] lg:w-[60rem] mx-auto p-2 sm:p-6 md:p-8 lg:p-10">
         {/* Top Gradient Card */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-t-2xl p-4 sm:p-8 md:p-10 text-white flex flex-col gap-4 sm:gap-6">
