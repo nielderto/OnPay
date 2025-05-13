@@ -2,8 +2,14 @@
 import { useState, useEffect } from 'react';
 import { lookupENSName } from '../../lib/ens-service';
 
+// Cache for ENS names
+const ensNameCache = new Map<string, { name: string | null; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
 interface AddressWithENSProps {
-  address?: string;
+  address: string;
 }
 
 export const AddressWithENS = ({ address }: AddressWithENSProps) => {
@@ -18,19 +24,45 @@ export const AddressWithENS = ({ address }: AddressWithENSProps) => {
 
     let isMounted = true;
     setIsLoading(true);
-    lookupENSName(address)
-      .then((name) => {
+
+    const fetchENSName = async (retryCount = 0) => {
+      try {
+        // Check cache first
+        const cached = ensNameCache.get(address);
+        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+          if (isMounted) {
+            setEnsName(cached.name);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        const name = await lookupENSName(address);
+        
+        // Update cache
+        ensNameCache.set(address, { name, timestamp: Date.now() });
+
         if (isMounted) {
           setEnsName(name);
           setIsLoading(false);
         }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setEnsName(null);
-          setIsLoading(false);
+      } catch (error) {
+        console.error(`Error fetching ENS name (attempt ${retryCount + 1}):`, error);
+        
+        if (retryCount < MAX_RETRIES) {
+          // Retry after delay
+          setTimeout(() => fetchENSName(retryCount + 1), RETRY_DELAY * (retryCount + 1));
+        } else {
+          if (isMounted) {
+            setEnsName(null);
+            setIsLoading(false);
+          }
         }
-      });
+      }
+    };
+
+    fetchENSName();
+
     return () => {
       isMounted = false;
     };
@@ -44,7 +76,7 @@ export const AddressWithENS = ({ address }: AddressWithENSProps) => {
   const displayName = ensName && ensName.endsWith('.lisk.eth') ? ensName.replace(/\.lisk\.eth$/, '') : ensName;
 
   return (
-    <span>
+    <span className="font-mono">
       {isLoading ? shortAddress : displayName ?? shortAddress}
     </span>
   );

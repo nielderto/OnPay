@@ -30,8 +30,9 @@ export default function Balance({ color = 'black' }){
     const formattedBalance = balance ? 
         new Intl.NumberFormat('en-US', {
             minimumFractionDigits: 2,
-            maximumFractionDigits: 4
-        }).format(Number(balance.formatted)) : '0.00';
+            maximumFractionDigits: 2,
+            useGrouping: true
+        }).format(Number(balance.formatted) / 100) : '0.00';
 
     return (
         <div className={`text-${color}`}>
@@ -40,9 +41,6 @@ export default function Balance({ color = 'black' }){
             ) : (
                 <>
                     {formattedBalance} IDRX
-                    {balance?.cached && (
-                        <span className="text-xs text-gray-400 ml-1">(cached)</span>
-                    )}
                 </>
             )}
         </div>

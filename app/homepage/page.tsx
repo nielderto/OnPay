@@ -1,4 +1,3 @@
-import Navbar from "@/components/buttons/Navbar";
 import DashboardCard from "@/components/ui/DashboardCard";
 import { TransactionHistory } from "@/components/data/TransactionHistory";
 import { Suspense } from "react";

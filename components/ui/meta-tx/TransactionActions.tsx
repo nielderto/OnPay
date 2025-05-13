@@ -1,4 +1,4 @@
-import CircularProgress from '@mui/material/CircularProgress';
+import CircularProgress from '@/components/ui/CircularProgress';
 
 interface TransactionActionsProps {
   isLoading: boolean;

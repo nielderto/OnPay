@@ -7,7 +7,9 @@ import { Suspense } from "react";
 import Loading from "./loading";
 
 const inter = Inter({
-  subsets: ['latin']
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true,
 })
 
 export const metadata: Metadata = {
@@ -22,6 +24,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://sepolia-blockscout.lisk.com" />
+        <link rel="preconnect" href="https://accounts.google.com" />
+        <link rel="preconnect" href="https://ens-gateway.onpaylisk.workers.dev" />
+        <link rel="preconnect" href="https://dash-api.xellar.co" />
+        
+        <link rel="modulepreload" href="/_next/static/chunks/webpack.js" />
+        <link rel="modulepreload" href="/_next/static/chunks/main.js" />
+        <link rel="modulepreload" href="/_next/static/chunks/pages/_app.js" />
+        
+        <link rel="dns-prefetch" href="https://sepolia-blockscout.lisk.com" />
+        <link rel="dns-prefetch" href="https://accounts.google.com" />
+        <link rel="dns-prefetch" href="https://ens-gateway.onpaylisk.workers.dev" />
+        <link rel="dns-prefetch" href="https://dash-api.xellar.co" />
+      </head>
       <body className={`${inter.className} antialiased bg-[#f0f0f0] suppressHydrationWarning`}>
         <ErrorBoundary>
           <Web3Provider>
