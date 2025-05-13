@@ -5,6 +5,7 @@ import { useState, useMemo, useCallback } from "react";
 import { useTransactions } from "../../hooks/useTransactions";
 import { formatUnits } from "viem";
 import axios from "axios";
+import { lookupENSName } from "@/lib/ens-service";
 import { AddressWithENS } from "../ui/AddressWithENS";
 import { useQuery } from '@tanstack/react-query';
 import { useAccount } from "wagmi";

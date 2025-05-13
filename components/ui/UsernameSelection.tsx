@@ -48,14 +48,10 @@ export default function UsernameSelection({ onSuccess }: UsernameSelectionProps)
         if (address) {
             const addr = address.toLowerCase()
             const shortAddr = `${addr.slice(2, 6)}${addr.slice(-4)}`
-            const timestamp = Math.floor(Date.now() / 1000).toString().slice(-5)
 
             setSuggestedNames([
-                `user${timestamp}`,
-                `wallet${shortAddr}`,
-                `account${timestamp}`,
-                `user${shortAddr}`,
-                `lisk${timestamp}`
+                `haowen`,
+                `nielderto`,
             ])
         }
     }, [address])
