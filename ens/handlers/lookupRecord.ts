@@ -24,7 +24,7 @@ function dnsDecode(encoded: string): string {
   
     return name
 }
-  
+
 
 export async function lookupENSRecord(c: Context): Promise<Response> {
   const address = c.req.param('address')?.toLowerCase()
