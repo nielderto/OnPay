@@ -14,8 +14,8 @@ const LazyXellarKitProvider = lazy(() => import("@xellar/kit").then(mod => ({
 
 const config = defaultConfig({
   appName: "Xellar",
-  walletConnectProjectId: '6989cc47d81e04ffbb064f2e2bcc7240',
-  xellarAppId: 'f67a35ea-57c9-4c57-9afc-8194fa0f19fa',
+  walletConnectProjectId: process.env.WALLET_CONNECT_PROJECT_ID || "",
+  xellarAppId: process.env.XELLAR_APP_ID || "",
   xellarEnv: "sandbox",
   ssr: true,
   chains: [liskSepolia]

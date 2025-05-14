@@ -1,7 +1,7 @@
 "use client"
-
+import { ethers } from "ethers"
 import { useState, useEffect } from "react"
-import { useAccount } from "wagmi"
+import { useAccount, useWalletClient } from "wagmi"
 import { ArrowRight, CheckCircle, XCircle, Loader2 } from "lucide-react"
 import { checkENSNameAvailable, registerENSName } from "@/lib/ens-service"
 import { useForm } from "react-hook-form"
@@ -22,6 +22,7 @@ interface UsernameSelectionProps {
 
 export default function UsernameSelection({ onSuccess }: UsernameSelectionProps) {
     const { address } = useAccount()
+    const { data: walletClient } = useWalletClient()
     const [isChecking, setIsChecking] = useState(false)
     const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
     const [isRegistering, setIsRegistering] = useState(false)
@@ -95,7 +96,11 @@ export default function UsernameSelection({ onSuccess }: UsernameSelectionProps)
             const fullName = data.username.endsWith(".lisk.eth") ? data.username : `${data.username}.lisk.eth`
 
             // Register the name using the ENS service
-            await registerENSName(fullName, address)
+            if (!walletClient) {
+                console.warn("walletClient is undefined");
+                return;
+            }
+            await registerENSName(fullName, walletClient);
 
             // Call onSuccess callback if provided
             onSuccess?.()

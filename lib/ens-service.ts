@@ -1,8 +1,8 @@
 import { ethers } from "ethers";
-import { createPublicClient, decodeDeployData, http, toHex } from "viem";
+import { createPublicClient, http, toHex, custom } from "viem";
 import { liskSepolia, sepolia, mainnet } from "viem/chains";
 import { namehash, normalize, packetToBytes } from "viem/ens";
-import { Hex } from "viem";
+import type { WalletClient } from "viem";
 import { L1Resolver } from "@/abi/L1Resolver";
 import { L2Registry } from "@/abi/L2Registry";
 import { L2Registrar } from '@/abi/L2Registrar';
@@ -114,13 +114,8 @@ export async function checkENSNameAvailable(ensName: string): Promise<{ availabl
  * @param address The Ethereum address to register the name for
  * @returns Promise<boolean> True if registration was successful
  */
-export async function registerENSName(ensName: string, address: string): Promise<boolean> {
+export async function registerENSName(ensName: string, walletClient: WalletClient): Promise<boolean> {
     try {
-        if (!window.ethereum) throw new Error("No wallet detected");
-
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-
         const normalized = normalize(ensName);
         const parts = normalized.split(".");
 
@@ -137,25 +132,35 @@ export async function registerENSName(ensName: string, address: string): Promise
         const available = await checkENSNameAvailable(ensName);
         if (!available.available) throw new Error(available.reason || "Name is taken");
 
-        // Ensure network is Lisk Sepolia (chainId 0x106A = 4202 in decimal)
+        // Get Signer Address
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const address = await signer.getAddress();
+        console.log("provider:", provider);
+        console.log("signer:", signer);
+        console.log("address:", address);
+
+        // Ensure correct network
         const network = await provider.getNetwork();
-        const liskSepoliaChainIdHex = "0x106A";
+        console.log("network:", network);
+        const liskSepoliaChainIdHex = "0x106A"; // 4202
 
         if (network.chainId.toString(16).toLowerCase() !== liskSepoliaChainIdHex.toLowerCase().replace(/^0x/, '')) {
-            console.log(`Current network: ${network.chainId}, expected: ${liskSepoliaChainIdHex}`);
-            await window.ethereum.request({
-                method: "wallet_switchEthereumChain",
-                params: [{ chainId: liskSepoliaChainIdHex }]
-            });
+            try {
+                console.log(`Current network: ${network.chainId}, expected: ${liskSepoliaChainIdHex}`);
+                await window.ethereum.request({
+                    method: "wallet_switchEthereumChain",
+                    params: [{ chainId: liskSepoliaChainIdHex }]
+                });
+            } catch (error: any) {
+                throw new Error("Xellar wallet doesn't support switching networks");
+            }
         }
 
         // Send registration tx
         const registrar = new ethers.Contract(L2_REGISTRAR_ADDRESS, L2Registrar.abi, signer);
-        console.log(`Registering ${label}.lisk.eth for address ${address}...`);
         const tx = await registrar.register(label, address);
-        console.log(`Transaction submitted: ${tx.hash}`);
         const receipt = await tx.wait();
-        console.log(`Transaction confirmed: ${receipt.hash}`);
 
         const response = await fetch('https://ens-gateway.onpaylisk.workers.dev/api/ens-sync', {
             method: 'POST',
