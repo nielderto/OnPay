@@ -1,7 +1,7 @@
 "use client"
-
+import { ethers } from "ethers"
 import { useState, useEffect } from "react"
-import { useAccount } from "wagmi"
+import { useAccount, useWalletClient } from "wagmi"
 import { ArrowRight, CheckCircle, XCircle, Loader2 } from "lucide-react"
 import { checkENSNameAvailable, registerENSName } from "@/lib/ens-service"
 import { useForm } from "react-hook-form"
@@ -24,13 +24,13 @@ onSuccess?: () => void
 }
 
 export default function UsernameSelection({ onSuccess }: UsernameSelectionProps) {
-const { address } = useAccount()
-const router = useRouter()
-const [isChecking, setIsChecking] = useState(false)
-const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
-const [isRegistering, setIsRegistering] = useState(false)
-const [error, setError] = useState<string | null>(null)
-const [suggestedNames, setSuggestedNames] = useState<string[]>([])
+    const { address } = useAccount()
+    const { data: walletClient } = useWalletClient()
+    const [isChecking, setIsChecking] = useState(false)
+    const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
+    const [isRegistering, setIsRegistering] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [suggestedNames, setSuggestedNames] = useState<string[]>([])
 
 const {
     register,
@@ -99,7 +99,7 @@ const registerUsername = async (data: UsernameFormData) => {
         const fullName = data.username.endsWith(".lisk.eth") ? data.username : `${data.username}.lisk.eth`
 
         // Register the name using the ENS service
-        await registerENSName(fullName, address)
+        await registerENSName(fullName, walletClient!)
 
         // Call onSuccess callback if provided
         onSuccess?.()
