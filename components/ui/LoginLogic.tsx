@@ -6,19 +6,40 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Loading from "@/app/loading"
 import { ArrowRight, Shield } from "lucide-react"
+import Cookies from "js-cookie"
 
 export default function LoginPage() {
   const { open } = useConnectModal()
-  const { isConnected, isConnecting } = useAccount()
+  const { isConnected, address } = useAccount()
   const router = useRouter()
 
   useEffect(() => {
-    if (isConnected) {
-      router.push("/homepage")
+    if (isConnected && address) {
+      // Store both cookies
+      Cookies.set("isConnected", "true", { path: "/" })
+      Cookies.set("walletAddress", address, { path: "/" })
+      
+      // Check if user has an ENS name
+      fetch(`https://ens-gateway.onpaylisk.workers.dev/api/ens-lookup/${address}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.name) {
+            // If they have an ENS name, go to homepage
+            router.push("/homepage")
+          } else {
+            // If they don't have an ENS name, go to username page
+            router.push("/username")
+          }
+        })
+        .catch(error => {
+          console.error("Error checking ENS name:", error)
+          // If there's an error, go to username page to be safe
+          router.push("/username")
+        })
     }
-  }, [isConnected, router])
+  }, [isConnected, address, router])
 
-  if (isConnecting) {
+  if (isConnected) {
     return <Loading />
   }
 
@@ -36,16 +57,17 @@ export default function LoginPage() {
         ></div>
       </div>
 
-      <div className="relative z-10 bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+      <div className="relative z-10 bg-white rounded-xl shadow-lg border border-gray-100 p-8 max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Login</h1>
-          <p className="text-gray-600 mt-2">Connect your wallet to access your account</p>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome to Lisk Wallet</h1>
+          <p className="text-gray-600 mt-2">Connect your wallet to get started</p>
         </div>
 
         <button
-          onClick={open}
+          onClick={() => open?.()}
           className="w-full bg-blue-500 text-white px-6 py-4 rounded-lg hover:bg-blue-600 transition-colors text-lg font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
         >
+          <Shield className="w-5 h-5" />
           Connect Wallet
           <ArrowRight className="w-5 h-5" />
         </button>

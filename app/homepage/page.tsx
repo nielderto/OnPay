@@ -3,14 +3,11 @@ import { TransactionHistory } from "@/components/data/TransactionHistory";
 import { Suspense } from "react";
 import Link from "next/link";
 import SpendingChart from "@/components/ui/SpendingChart";
-import UsernameSelectionPopup from "@/components/ui/UsernameSelectionPopup";
-import UsernameSelection from "@/components/ui/UsernameSelection";
 import { SuspenseBoundary } from "@/components/ui/SuspenseBoundary";
 
 // Separate critical and non-critical components
 const CriticalComponents = () => (
     <>
-        <UsernameSelectionPopup />
         <SuspenseBoundary fallback={<div>Loading dashboard...</div>}>
             <DashboardCard />
         </SuspenseBoundary>
@@ -31,9 +28,6 @@ const NonCriticalComponents = () => (
         </SuspenseBoundary>
         <SuspenseBoundary fallback={<div>Loading transactions...</div>}>
             <TransactionHistory />
-        </SuspenseBoundary>
-        <SuspenseBoundary fallback={<div>Loading username selection...</div>}>
-            <UsernameSelection />
         </SuspenseBoundary>
     </>
 );

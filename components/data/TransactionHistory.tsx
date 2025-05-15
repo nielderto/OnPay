@@ -29,6 +29,8 @@ type FilterType = "all" | "sent" | "received" | "pending";
 // Constants
 const IDRX_TOKEN_ADDRESS = "0xD63029C1a3dA68b51c67c6D1DeC3DEe50D681661";
 const TRANSACTIONS_PER_PAGE = 20;
+const MAX_DISPLAY_LIMIT = 10; // Maximum display limit
+const MIN_DISPLAY_LIMIT = 3; // Minimum display limit
 const REFETCH_INTERVAL = 30000; // 30 seconds
 
 // API
@@ -195,7 +197,9 @@ export const TransactionHistory = () => {
     }), [transactions, activeFilter]);
 
   const displayedTransactions = useMemo(() => 
-    showAll ? filteredTransactions : filteredTransactions.slice(0, 3),
+    showAll 
+      ? filteredTransactions.slice(0, MAX_DISPLAY_LIMIT) 
+      : filteredTransactions.slice(0, MIN_DISPLAY_LIMIT),
     [filteredTransactions, showAll]);
 
   if (!isConnected) {
@@ -232,7 +236,7 @@ export const TransactionHistory = () => {
     <div className="w-full max-w-4xl mx-auto px-4 mt-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Transaction History</h1>
-        {filteredTransactions.length > 3 && (
+        {filteredTransactions.length > MIN_DISPLAY_LIMIT && (
           <button 
             onClick={() => setShowAll(!showAll)}
             className="px-4 py-2 bg-blue-500 rounded-lg border border-gray-200 text-sm font-medium hover:bg-blue-400 text-white"

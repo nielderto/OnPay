@@ -10,7 +10,8 @@ export default function Logout() {
 
     const handleLogout = () => {
         disconnect();
-        Cookies.remove("isConnected", {path:"/"})
+        Cookies.remove("isConnected", {path:"/"});
+        Cookies.remove("walletAddress", {path:"/"});
         router.push('/');
     };
 

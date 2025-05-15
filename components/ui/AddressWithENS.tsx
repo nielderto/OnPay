@@ -8,6 +8,15 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 
+// Function to clear the cache for a specific address
+export const clearENSCache = (address?: string) => {
+    if (address) {
+        ensNameCache.delete(address);
+    } else {
+        ensNameCache.clear();
+    }
+};
+
 interface AddressWithENSProps {
   address: string;
 }
@@ -77,7 +86,7 @@ export const AddressWithENS = ({ address }: AddressWithENSProps) => {
 
   return (
     <span className="font-mono">
-      {isLoading ? shortAddress : displayName ?? shortAddress}
+      {isLoading ? shortAddress : displayName ?? address}
     </span>
   );
 }; 

@@ -3,6 +3,21 @@ import React, { useEffect, useState } from "react";
 import Logout from "./buttons/Logout";
 import { lookupENSName } from "@/lib/ens-service";
 
+// Cache for ENS names
+const ensNameCache = new Map<string, { name: string | null; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+// Function to clear the cache for a specific address
+export const clearUserGreetingCache = (address?: string) => {
+    if (address) {
+        ensNameCache.delete(address);
+    } else {
+        ensNameCache.clear();
+    }
+};
+
 interface UserGreetingProps {
   address: string;
 }
@@ -23,7 +38,7 @@ export default function UserGreeting({ address }: UserGreetingProps) {
 
   useEffect(() => {
     let isMounted = true;
-    async function fetchENSName() {
+    async function fetchENSName(retryCount = 0) {
       // Start loading
       if (isMounted) setIsLoading(true);
       // If no address provided, skip lookup
@@ -33,12 +48,37 @@ export default function UserGreeting({ address }: UserGreetingProps) {
       }
 
       try {
+        // Check cache first
+        const cached = ensNameCache.get(address);
+        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+          if (isMounted) {
+            setEnsName(cached.name);
+            setIsLoading(false);
+          }
+          return;
+        }
+
         const name = await lookupENSName(address);
-        if (isMounted) setEnsName(name);
+        
+        // Update cache
+        ensNameCache.set(address, { name, timestamp: Date.now() });
+
+        if (isMounted) {
+          setEnsName(name);
+          setIsLoading(false);
+        }
       } catch (error) {
-        console.error("Error fetching ENS name:", error);
-      } finally {
-        if (isMounted) setIsLoading(false);
+        console.error(`Error fetching ENS name (attempt ${retryCount + 1}):`, error);
+        
+        if (retryCount < MAX_RETRIES) {
+          // Retry after delay
+          setTimeout(() => fetchENSName(retryCount + 1), RETRY_DELAY * (retryCount + 1));
+        } else {
+          if (isMounted) {
+            setEnsName(null);
+            setIsLoading(false);
+          }
+        }
       }
     }
 

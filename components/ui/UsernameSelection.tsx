@@ -7,118 +7,130 @@ import { checkENSNameAvailable, registerENSName } from "@/lib/ens-service"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
+import { useRouter } from "next/navigation"
+import { clearENSCache } from "./AddressWithENS"
+import { clearUserGreetingCache } from "../UserGreeting"
 
 const usernameSchema = z.object({
-    username: z.string()
-        .min(3, "Username must be at least 3 characters")
-        .regex(/^[a-z0-9]+$/, "Username can only contain lowercase letters and numbers")
+username: z.string()
+    .min(3, "Username must be at least 3 characters")
+    .regex(/^[a-z0-9]+$/, "Username can only contain lowercase letters and numbers")
 })
 
 type UsernameFormData = z.infer<typeof usernameSchema>
 
 interface UsernameSelectionProps {
-    onSuccess?: () => void
+onSuccess?: () => void
 }
 
 export default function UsernameSelection({ onSuccess }: UsernameSelectionProps) {
-    const { address } = useAccount()
-    const [isChecking, setIsChecking] = useState(false)
-    const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
-    const [isRegistering, setIsRegistering] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [suggestedNames, setSuggestedNames] = useState<string[]>([])
+const { address } = useAccount()
+const router = useRouter()
+const [isChecking, setIsChecking] = useState(false)
+const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
+const [isRegistering, setIsRegistering] = useState(false)
+const [error, setError] = useState<string | null>(null)
+const [suggestedNames, setSuggestedNames] = useState<string[]>([])
 
-    const {
-        register,
-        handleSubmit,
-        setValue,
-        watch,
-        formState: { errors }
-    } = useForm<UsernameFormData>({
-        resolver: zodResolver(usernameSchema),
-        defaultValues: {
-            username: ""
-        }
-    })
-
-    const username = watch("username")
-
-    // Generate suggested names on component mount
-    useEffect(() => {
-        if (address) {
-            const addr = address.toLowerCase()
-            const shortAddr = `${addr.slice(2, 6)}${addr.slice(-4)}`
-
-            setSuggestedNames([
-                `haowen`,
-                `nielderto`,
-            ])
-        }
-    }, [address])
-
-    const checkAvailability = async (name: string) => {
-        if (!name) return
-
-        setIsChecking(true)
-        setError(null)
-        setIsAvailable(null)
-
-        try {
-            // Add .lisk.eth suffix if not present
-            const fullName = name.endsWith(".lisk.eth") ? name : `${name}.lisk.eth`
-
-            // Check availability using the ENS service
-            const result = await checkENSNameAvailable(fullName)
-
-            setIsAvailable(result.available)
-
-            if (!result.available && result.reason) {
-                setError(result.reason)
-            }
-        } catch (error) {
-            console.error("Error checking ENS availability:", error)
-            setError("Error checking name availability. Please try again.")
-            setIsAvailable(false)
-        } finally {
-            setIsChecking(false)
-        }
+const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors }
+} = useForm<UsernameFormData>({
+    resolver: zodResolver(usernameSchema),
+    defaultValues: {
+        username: ""
     }
+})
 
-    const registerUsername = async (data: UsernameFormData) => {
-        if (!data.username || !isAvailable || !address) return
+const username = watch("username")
 
-        setIsRegistering(true)
-        setError(null)
+// Generate suggested names on component mount
+useEffect(() => {
+    if (address) {
+        const addr = address.toLowerCase()
+        const shortAddr = `${addr.slice(2, 6)}${addr.slice(-4)}`
 
-        try {
-            // Add .lisk.eth suffix if not present
-            const fullName = data.username.endsWith(".lisk.eth") ? data.username : `${data.username}.lisk.eth`
+        setSuggestedNames([
+            `haowen`,
+            `nielderto`,
+        ])
+    }
+}, [address])
 
-            // Register the name using the ENS service
-            await registerENSName(fullName, address)
+const checkAvailability = async (name: string) => {
+    if (!name) return
 
-            // Call onSuccess callback if provided
-            onSuccess?.()
-        } catch (error: any) {
-            console.error("Error registering ENS name:", error)
-            setError(error.message || "Error registering username. Please try again.")
-        } finally {
-            setIsRegistering(false)
+    setIsChecking(true)
+    setError(null)
+    setIsAvailable(null)
+
+    try {
+        // Add .lisk.eth suffix if not present
+        const fullName = name.endsWith(".lisk.eth") ? name : `${name}.lisk.eth`
+
+        // Check availability using the ENS service
+        const result = await checkENSNameAvailable(fullName)
+
+        setIsAvailable(result.available)
+
+        if (!result.available && result.reason) {
+            setError(result.reason)
         }
+    } catch (error) {
+        console.error("Error checking ENS availability:", error)
+        setError("Error checking name availability. Please try again.")
+        setIsAvailable(false)
+    } finally {
+        setIsChecking(false)
     }
+}
 
-    const handleCheckAvailability = () => {
-        if (username.length >= 3) {
-            checkAvailability(username)
-        }
+const registerUsername = async (data: UsernameFormData) => {
+    if (!data.username || !isAvailable || !address) return
+
+    setIsRegistering(true)
+    setError(null)
+
+    try {
+        // Add .lisk.eth suffix if not present
+        const fullName = data.username.endsWith(".lisk.eth") ? data.username : `${data.username}.lisk.eth`
+
+        // Register the name using the ENS service
+        await registerENSName(fullName, address)
+
+        // Call onSuccess callback if provided
+        onSuccess?.()
+        
+        // Clear both ENS caches for this address
+        clearENSCache(address)
+        clearUserGreetingCache(address)
+        
+        // Force a page refresh to ensure ENS name is properly displayed
+        window.location.href = '/homepage'
+    } catch (error: any) {
+        console.error("Error registering ENS name:", error)
+        setError(error.message || "Error registering username. Please try again.")
+    } finally {
+        setIsRegistering(false)
     }
+}
 
-    const handleSuggestionClick = (suggestion: string) => {
-        setValue("username", suggestion)
-        checkAvailability(suggestion)
+const handleCheckAvailability = () => {
+    if (username.length >= 3) {
+        checkAvailability(username)
     }
+}
 
-    return (
+const handleSuggestionClick = (suggestion: string) => {
+    setValue("username", suggestion)
+    checkAvailability(suggestion)
+}
+
+return (
+    <div className="min-h-screen flex items-center justify-center p-4">
         <div className="relative z-10 bg-white rounded-xl shadow-lg border border-gray-100 p-8 max-w-md w-full">
             <div className="text-center mb-8">
                 <h1 className="text-2xl font-bold text-gray-900">Choose Your Username</h1>
@@ -215,5 +227,6 @@ export default function UsernameSelection({ onSuccess }: UsernameSelectionProps)
                 </p>
             </div>
         </div>
-    )
+    </div>
+)
 } 
