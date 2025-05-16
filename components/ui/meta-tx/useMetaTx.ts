@@ -166,6 +166,10 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
       return;
     }
 
+    // Check if using Xellar Kit or another wallet provider
+    const isXellarKit = !!walletClient && !!walletClient.account;
+    console.log(isXellarKit ? "Approving with Xellar Kit" : "Approving with other wallet");
+
     setIsApproving(true);
 
     try {
@@ -177,26 +181,65 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
       });
 
       const amountToApprove = parseUnits(amount, tokenDecimals);
-      const txHash = await tokenContract.write.approve([
-        idrxPayContract,
-        amountToApprove,
-      ]);
 
-      toast.success('Please approve the transaction in MetaMask...');
+      toast.loading('Approving transaction...', { id: 'approve-loading' });
+      console.log("Approving amount:", amountToApprove.toString());
+
+      let txHash;
+      try {
+        txHash = await tokenContract.write.approve([
+          idrxPayContract,
+          amountToApprove,
+        ]);
+        console.log("Approval transaction submitted:", txHash);
+      } catch (approveError: any) {
+        console.error("Error during approval:", approveError);
+        // Handle specific errors for different wallet types
+        if (isXellarKit) {
+          if (approveError.message?.includes('rejected') || approveError.message?.includes('denied')) {
+            throw new Error('Transaction was rejected by the user');
+          }
+        } else {
+          // Handle MetaMask specific errors
+          if (approveError.code === 4001) {
+            throw new Error('Transaction was rejected by the user');
+          }
+        }
+        throw approveError;
+      }
 
       if (publicClient) {
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-        if (receipt.status === 'success') {
-          setIsApproved(true);
-          toast.success('Approval confirmed! You can now send the transaction.');
-        } else {
-          setIsApproved(false);
-          throw new Error('Approval transaction failed');
+        console.log("Waiting for transaction receipt...");
+        try {
+          const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+          if (receipt.status === 'success') {
+            setIsApproved(true);
+            toast.success('Approval confirmed! You can now send the transaction.', { id: 'approve-loading' });
+            console.log("Approval transaction confirmed");
+          } else {
+            setIsApproved(false);
+            toast.error('Approval transaction failed', { id: 'approve-loading' });
+            console.error("Approval transaction failed with status:", receipt.status);
+            throw new Error('Approval transaction failed');
+          }
+        } catch (receiptError: any) {
+          console.error("Error getting transaction receipt:", receiptError);
+          throw new Error('Failed to confirm approval: ' + receiptError.message);
         }
       }
     } catch (err: any) {
       console.error('Approval error:', err);
-      toast.error(err.message || 'Approval failed');
+      let errorMessage = 'Approval failed';
+
+      if (err.message) {
+        errorMessage = err.message;
+        // Handle user rejected cases
+        if (err.message.includes('rejected') || err.message.includes('denied') || err.message.includes('cancelled')) {
+          errorMessage = 'Transaction was rejected by the user';
+        }
+      }
+
+      toast.error(errorMessage, { id: 'approve-loading' });
       setIsApproved(false);
     } finally {
       setIsApproving(false);
@@ -204,8 +247,63 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
   };
 
   const handleMetaTx = async () => {
-    if (!walletClient || !address || !nonce || !publicClient) {
-      console.error('Missing required data for meta transaction');
+    // Check if using Xellar Kit or another wallet provider
+    const isXellarKit = !!walletClient && !!walletClient.account;
+
+    if (isXellarKit) {
+      console.log("Using Xellar Kit wallet", {
+        address: walletClient.account.address
+      });
+    } else {
+      console.log("Using other wallet provider (likely MetaMask)");
+    }
+
+    // Handle missing data based on wallet type
+    if (!walletClient) {
+      console.error('Wallet client not available');
+      toast.error('Wallet not connected. Please connect your wallet and try again.');
+      return;
+    }
+
+    if (!address) {
+      console.error('Wallet address not available');
+      toast.error('Could not get your wallet address. Please reconnect your wallet.');
+      return;
+    }
+
+    // For Xellar Kit, manually fetch the nonce if it's not available
+    if (!nonce && isXellarKit) {
+      console.log("Nonce not available with Xellar Kit, fetching it now...");
+      try {
+        if (publicClient) {
+          const fetchedNonce = await publicClient.readContract({
+            address: metaTxForwarderContract,
+            abi: metaTxForwarderAbi,
+            functionName: "nonces",
+            args: [address],
+          }) as bigint;
+
+          console.log("Manually fetched nonce:", fetchedNonce.toString());
+          setNonce(fetchedNonce);
+        } else {
+          console.error("Public client not available, cannot fetch nonce");
+          toast.error("Network connection not available. Please check your connection.");
+          return;
+        }
+      } catch (error: any) {
+        console.error("Failed to fetch nonce:", error);
+        toast.error("Could not get transaction information. Please try again later.");
+        return;
+      }
+    } else if (!nonce) {
+      console.error('Transaction nonce not available');
+      toast.error('Transaction information not available. Please refresh and try again.');
+      return;
+    }
+
+    if (!publicClient) {
+      console.error('Public client not available');
+      toast.error('Network connection not available. Please check your connection.');
       return;
     }
 
@@ -219,22 +317,34 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
     // Resolve ENS name to address if necessary
     let toAddress = recipientAddress;
     if (!toAddress.startsWith('0x')) {
-      const ensNameToResolve = toAddress.includes('.') ? toAddress : `${toAddress}.lisk.eth`;
-      const resolved = await resolveENSName(ensNameToResolve);
-      if (!resolved) {
-        throw new Error(`Could not resolve ENS name: ${ensNameToResolve}`);
+      try {
+        const ensNameToResolve = toAddress.includes('.') ? toAddress : `${toAddress}.lisk.eth`;
+        console.log("Resolving ENS name:", ensNameToResolve);
+        const resolved = await resolveENSName(ensNameToResolve);
+        if (!resolved) {
+          throw new Error(`Could not resolve ENS name: ${ensNameToResolve}`);
+        }
+        toAddress = resolved;
+        console.log("Resolved to address:", toAddress);
+      } catch (error: any) {
+        console.error("ENS resolution error:", error);
+        setIsLoading(false);
+        toast.error(`ENS resolution failed: ${error.message}`);
+        return;
       }
-      toAddress = resolved;
     }
 
     try {
+      // Get the current nonce for this user from the contract
       const currentNonce = await publicClient.readContract({
         address: metaTxForwarderContract,
         abi: metaTxForwarderAbi,
         functionName: "nonces",
         args: [address],
       }) as bigint;
+      console.log("Current nonce from contract:", currentNonce.toString());
 
+      // Generate the message hash
       const messageHash = await publicClient.readContract({
         address: metaTxForwarderContract,
         abi: metaTxForwarderAbi,
@@ -247,10 +357,42 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
           currentNonce,
         ],
       }) as `0x${string}`;
+      console.log("Message hash:", messageHash);
 
-      const signature = await walletClient.signMessage({ message: { raw: messageHash } });
+      // Sign message with appropriate wallet
+      console.log("Requesting signature from wallet...");
+      let signature;
 
-      toast.loading('Sending to relayer...', { id: 'relay-loading' });
+      if (isXellarKit) {
+        try {
+          signature = await walletClient.signMessage({
+            message: { raw: messageHash }
+          });
+          console.log("Xellar Kit signature received, length:", signature.length);
+        } catch (sigError: any) {
+          console.error("Xellar signature error:", sigError);
+          throw new Error(sigError.message || "Failed to sign message with Xellar Kit");
+        }
+      } else {
+        // Using other provider (like MetaMask)
+        try {
+          signature = await walletClient.signMessage({
+            message: { raw: messageHash }
+          });
+          console.log("Wallet signature received, length:", signature.length);
+        } catch (sigError: any) {
+          console.error("Wallet signature error:", sigError);
+          throw new Error(sigError.message || "Failed to sign message with wallet");
+        }
+      }
+
+      // Send to relayer
+      toast.loading('Sending transaction...', { id: 'relay-loading' });
+      console.log("Sending to relay API", {
+        sender: address,
+        receiver: toAddress,
+        amount: amount
+      });
 
       const res = await fetch('/api/relay', {
         method: 'POST',
@@ -264,6 +406,7 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
       });
 
       const result = await res.json();
+      console.log("Relay API response:", result);
 
       if (!res.ok) {
         let errorMessage = result.error || 'Relay failed';
@@ -283,13 +426,13 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
         throw new Error(errorMessage);
       }
 
-      toast.success(`Transaction Sent! Hash: ${result.txHash}`, { id: 'relay-loading' });
+      toast.success(`Transaction sent successfully!`, { id: 'relay-loading' });
       setLastTransactionHash(result.txHash);
       return result.txHash;
     } catch (error: any) {
       console.error('Meta transaction failed:', error);
       let errorMsg = error.message || 'Transaction failed';
-      
+
       if (errorMsg.includes('transfer amount exceeds balance')) {
         errorMsg = 'Insufficient IDRX balance';
       } else if (errorMsg.includes('insufficient allowance')) {
@@ -300,8 +443,11 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
         errorMsg = 'Amount is too small. Please enter a larger amount';
       } else if (errorMsg.includes('invalid amount')) {
         errorMsg = 'Please enter a valid amount';
+      } else if (errorMsg.includes('rejected') || errorMsg.includes('denied') || errorMsg.includes('cancelled')) {
+        errorMsg = 'Transaction was rejected by the user';
       }
 
+      toast.error(errorMsg, { id: 'relay-loading' });
       throw new Error(errorMsg);
     } finally {
       setIsLoading(false);

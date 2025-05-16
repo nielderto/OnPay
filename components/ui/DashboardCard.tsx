@@ -6,10 +6,11 @@ import Address from "../data/Address";
 import { useState } from "react";
 import UserGreeting from "../UserGreeting";
 import { useAccount } from "wagmi";
+
 export default function DashboardCard() {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const { address } = useAccount();
-  
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
   };

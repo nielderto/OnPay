@@ -13,13 +13,13 @@ interface MetaTxProviderProps {
   onError?: (error: string) => void;
 }
 
-export default function MetaTxProvider({ 
-  recipientAddress, 
-  amount, 
-  decimals, 
-  onProcessingChange, 
-  onSuccess, 
-  onError 
+export default function MetaTxProvider({
+  recipientAddress,
+  amount,
+  decimals,
+  onProcessingChange,
+  onSuccess,
+  onError
 }: MetaTxProviderProps) {
   const {
     isLoading,

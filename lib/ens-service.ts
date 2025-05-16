@@ -111,10 +111,9 @@ export async function checkENSNameAvailable(ensName: string): Promise<{ availabl
 /**
  * Register an ENS name for a user
  * @param ensName The full ENS name (e.g., "username.lisk.eth")
- * @param address The Ethereum address to register the name for
  * @returns Promise<boolean> True if registration was successful
  */
-export async function registerENSName(ensName: string, walletClient: WalletClient): Promise<boolean> {
+export async function registerENSName(ensName: string, walletClient?: any): Promise<boolean> {
     try {
         const normalized = normalize(ensName);
         const parts = normalized.split(".");
@@ -132,36 +131,82 @@ export async function registerENSName(ensName: string, walletClient: WalletClien
         const available = await checkENSNameAvailable(ensName);
         if (!available.available) throw new Error(available.reason || "Name is taken");
 
-        // Get Signer Address
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const address = await signer.getAddress();
-        console.log("provider:", provider);
-        console.log("signer:", signer);
-        console.log("address:", address);
+        // Determine if using Xellar Kit or MetaMask
+        const isUsingXellarKit = !!walletClient;
+        let signer, address;
 
-        // Ensure correct network
-        const network = await provider.getNetwork();
-        console.log("network:", network);
-        const liskSepoliaChainIdHex = "0x106A"; // 4202
+        if (isUsingXellarKit) {
+            console.log("Using Xellar Kit for ENS registration");
+            // Get signer from wagmi's walletClient
+            if (!walletClient) {
+                throw new Error("Wallet client not available");
+            }
 
-        if (network.chainId.toString(16).toLowerCase() !== liskSepoliaChainIdHex.toLowerCase().replace(/^0x/, '')) {
-            try {
-                console.log(`Current network: ${network.chainId}, expected: ${liskSepoliaChainIdHex}`);
-                await window.ethereum.request({
-                    method: "wallet_switchEthereumChain",
-                    params: [{ chainId: liskSepoliaChainIdHex }]
-                });
-            } catch (error: any) {
-                throw new Error("Xellar wallet doesn't support switching networks");
+            // Get address from account
+            address = walletClient.account.address;
+            console.log("Xellar wallet address:", address);
+
+            // Use walletClient directly with Viem API if needed
+            // For compatibility with ethers, we'll adapt the APIs where needed
+        } else {
+            console.log("Using MetaMask for ENS registration");
+            // Traditional way with window.ethereum
+            if (!window.ethereum) {
+                throw new Error("No ethereum provider found. Please install MetaMask.");
+            }
+
+            // Get Signer Address the traditional way
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            signer = await provider.getSigner();
+            address = await signer.getAddress();
+            console.log("provider:", provider);
+            console.log("signer:", signer);
+            console.log("address:", address);
+
+            // Ensure correct network
+            const network = await provider.getNetwork();
+            console.log("network:", network);
+            const liskSepoliaChainIdHex = "0x106A"; // 4202
+
+            if (network.chainId.toString(16).toLowerCase() !== liskSepoliaChainIdHex.toLowerCase().replace(/^0x/, '')) {
+                try {
+                    console.log(`Current network: ${network.chainId}, expected: ${liskSepoliaChainIdHex}`);
+                    await window.ethereum.request({
+                        method: "wallet_switchEthereumChain",
+                        params: [{ chainId: liskSepoliaChainIdHex }]
+                    });
+                } catch (error: any) {
+                    throw new Error("Unable to switch networks. Please switch to Lisk Sepolia network manually.");
+                }
             }
         }
 
-        // Send registration tx
-        const registrar = new ethers.Contract(L2_REGISTRAR_ADDRESS, L2Registrar.abi, signer);
-        const tx = await registrar.register(label, address);
-        const receipt = await tx.wait();
+        // Execute the registration
+        let txHash;
 
+        if (isUsingXellarKit) {
+            // Use Viem-style transaction with Xellar Kit
+            const transaction = await walletClient.writeContract({
+                address: L2_REGISTRAR_ADDRESS as `0x${string}`,
+                abi: L2Registrar.abi,
+                functionName: 'register',
+                args: [label, address],
+            });
+
+            txHash = transaction;
+            console.log("Transaction submitted with Xellar Kit:", txHash);
+        } else {
+            // Use ethers.js with MetaMask
+            const registrar = new ethers.Contract(L2_REGISTRAR_ADDRESS, L2Registrar.abi, signer);
+            const tx = await registrar.register(label, address, {
+                gasLimit: 300000,  // Set a reasonable gas limit
+            });
+            await tx.wait();
+            txHash = tx.hash;
+            console.log("Transaction submitted with MetaMask:", txHash);
+        }
+
+        // Sync with ENS gateway
         const response = await fetch('https://ens-gateway.onpaylisk.workers.dev/api/ens-sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -174,9 +219,30 @@ export async function registerENSName(ensName: string, walletClient: WalletClien
 
         console.log(`Successfully registered ${normalized} to ${address}`);
         return true;
-    } catch (error) {
+    } catch (error: any) {
         console.error("ENS registration failed:", error);
-        throw error;
+
+        // Provide more detailed error information
+        let errorMessage = "Error registering ENS name";
+
+        if (error.code) {
+            // Handle specific MetaMask error codes
+            if (error.code === 4001) {
+                errorMessage = "Transaction was rejected by the user";
+            } else if (error.code === -32603) {
+                errorMessage = "Internal JSON-RPC error. Check gas settings or network congestion";
+            } else {
+                errorMessage = `Error code ${error.code}: ${error.message || "Unknown error"}`;
+            }
+        } else if (error.reason) {
+            // Contract revert reason
+            errorMessage = `Contract error: ${error.reason}`;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+
+        console.error("Detailed error:", errorMessage);
+        throw new Error(errorMessage);
     }
 }
 
@@ -301,25 +367,26 @@ export async function resolveENSName(ensName: string): Promise<string | null> {
  */
 export async function lookupENSName(address: string): Promise<string | null> {
     try {
-      const res = await fetch(`https://ens-gateway.onpaylisk.workers.dev/api/ens-lookup/${address}`)
-      if (!res.ok) {
-        const errText = await res.text()
-        throw new Error(`HTTP ${res.status} – ${errText}`)
-      }
-  
-      const data = await res.json();
-      const rawName = data.name || null;
-  
-      if (!rawName) {
-        console.log(`❌ No ENS name found for ${address}`);
-        return null;
-      }
-  
-      console.log(`✅ ENS name from gateway: ${rawName}`);
-      return rawName;
+        const res = await fetch(`https://ens-gateway.onpaylisk.workers.dev/api/ens-lookup/${address}`)
+        if (!res.ok) {
+            const errText = await res.text()
+            throw new Error(`HTTP ${res.status} – ${errText}`)
+        }
+
+        const data = await res.json();
+        // Check for empty string or null
+        const rawName = data.name && data.name.trim() !== "" ? data.name : null;
+
+        if (!rawName) {
+            console.log(`❌ No ENS name found for ${address}`);
+            return null;
+        }
+
+        console.log(`✅ ENS name from gateway: ${rawName}`);
+        return rawName;
     } catch (error) {
-      console.error("Error looking up ENS name:", error)
-      return null
+        console.error("Error looking up ENS name:", error)
+        return null
     }
 }
 

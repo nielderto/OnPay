@@ -18,7 +18,6 @@ export default function LoginPage() {
       // Store both cookies
       Cookies.set("isConnected", "true", { path: "/" })
       Cookies.set("walletAddress", address, { path: "/" })
-      
       // Check if user has an ENS name
       fetch(`https://ens-gateway.onpaylisk.workers.dev/api/ens-lookup/${address}`)
         .then(res => res.json())
