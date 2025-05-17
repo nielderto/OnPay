@@ -3,6 +3,7 @@ import type { Hex } from 'viem'
 export interface Env {
     LISK_SEPOLIA_RPC_URL: string,
     SIGNER_PRIVATE_KEY: Hex,
+    RELAYER_PRIVATE_KEY: Hex,
     DB: D1Database,
 }
 

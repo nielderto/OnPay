@@ -31,7 +31,7 @@ export default function HeroSection() {
 
             {/* Subtitle */}
             <h2 className={`${dmSans.className} text-3xl lg:text-6xl font-bold tracking-tight text-gray-800`}>
-              Send Money Everywhere, Anytime, Anywhere
+            Seamless Transactions Across Every Time Zone            
             </h2>
 
             {/* Catchphrase */}

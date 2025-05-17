@@ -25,6 +25,7 @@
     "ethers": "^6.13.7",
     "flowbite": "^3.1.2",
     "framer-motion": "^12.11.0",
+    "hono": "^4.7.9",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.501.0",
     "next": "15.3.1",
@@ -44,6 +45,7 @@
     "zod": "^3.24.4"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250517.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

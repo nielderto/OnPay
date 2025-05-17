@@ -246,6 +246,70 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
     }
   };
 
+  const handleXellarTransaction = async (
+    walletClient: any,
+    messageHash: `0x${string}`,
+    publicClient: any,
+    address: string,
+    toAddress: string,
+    amount: string,
+    tokenDecimals: number
+  ) => {
+    try {
+      // Sign message with Xellar wallet
+      const signature = await walletClient.signMessage({
+        message: { raw: messageHash }
+      });
+      console.log("Xellar Kit signature received, length:", signature.length);
+
+      // Send to relayer
+      toast.loading('Sending transaction...', { id: 'relay-loading' });
+      console.log("Sending to relay API", {
+        sender: address,
+        receiver: toAddress,
+        amount: amount
+      });
+
+      const res = await fetch('/api/relay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender: address,
+          receiver: toAddress,
+          amount,
+          signature,
+        }),
+      });
+
+      const result = await res.json();
+      console.log("Relay API response:", result);
+
+      if (!res.ok) {
+        let errorMessage = result.error || 'Relay failed';
+        if (errorMessage.includes('transfer amount exceeds balance')) {
+          errorMessage = 'Insufficient IDRX balance';
+        } else if (errorMessage.includes('insufficient allowance')) {
+          errorMessage = 'Please approve the IDRX Payment Contract first';
+        } else if (errorMessage.includes('insufficient funds') || errorMessage.includes('INSUFFICIENT_FUNDS')) {
+          errorMessage = 'The relayer needs LISK tokens to pay for gas fees';
+        } else if (errorMessage.includes('amount too small')) {
+          errorMessage = 'Amount is too small. Please enter a larger amount';
+        } else if (errorMessage.includes('invalid amount')) {
+          errorMessage = 'Please enter a valid amount';
+        }
+
+        toast.error(errorMessage, { id: 'relay-loading' });
+        throw new Error(errorMessage);
+      }
+
+      toast.success(`Transaction sent successfully!`, { id: 'relay-loading' });
+      return result.txHash;
+    } catch (error: any) {
+      console.error('Xellar transaction failed:', error);
+      throw error;
+    }
+  };
+
   const handleMetaTx = async () => {
     // Check if using Xellar Kit or another wallet provider
     const isXellarKit = !!walletClient && !!walletClient.account;
@@ -359,76 +423,75 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
       }) as `0x${string}`;
       console.log("Message hash:", messageHash);
 
-      // Sign message with appropriate wallet
-      console.log("Requesting signature from wallet...");
-      let signature;
-
+      let txHash;
       if (isXellarKit) {
-        try {
-          signature = await walletClient.signMessage({
-            message: { raw: messageHash }
-          });
-          console.log("Xellar Kit signature received, length:", signature.length);
-        } catch (sigError: any) {
-          console.error("Xellar signature error:", sigError);
-          throw new Error(sigError.message || "Failed to sign message with Xellar Kit");
-        }
+        txHash = await handleXellarTransaction(
+          walletClient,
+          messageHash,
+          publicClient,
+          address,
+          toAddress,
+          amount,
+          tokenDecimals
+        );
       } else {
         // Using other provider (like MetaMask)
         try {
-          signature = await walletClient.signMessage({
+          const signature = await walletClient.signMessage({
             message: { raw: messageHash }
           });
           console.log("Wallet signature received, length:", signature.length);
+
+          // Send to relayer
+          toast.loading('Sending transaction...', { id: 'relay-loading' });
+          console.log("Sending to relay API", {
+            sender: address,
+            receiver: toAddress,
+            amount: amount
+          });
+
+          const res = await fetch('/api/relay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sender: address,
+              receiver: toAddress,
+              amount,
+              signature,
+            }),
+          });
+
+          const result = await res.json();
+          console.log("Relay API response:", result);
+
+          if (!res.ok) {
+            let errorMessage = result.error || 'Relay failed';
+            if (errorMessage.includes('transfer amount exceeds balance')) {
+              errorMessage = 'Insufficient IDRX balance';
+            } else if (errorMessage.includes('insufficient allowance')) {
+              errorMessage = 'Please approve the IDRX Payment Contract first';
+            } else if (errorMessage.includes('insufficient funds') || errorMessage.includes('INSUFFICIENT_FUNDS')) {
+              errorMessage = 'The relayer needs LISK tokens to pay for gas fees';
+            } else if (errorMessage.includes('amount too small')) {
+              errorMessage = 'Amount is too small. Please enter a larger amount';
+            } else if (errorMessage.includes('invalid amount')) {
+              errorMessage = 'Please enter a valid amount';
+            }
+
+            toast.error(errorMessage, { id: 'relay-loading' });
+            throw new Error(errorMessage);
+          }
+
+          toast.success(`Transaction sent successfully!`, { id: 'relay-loading' });
+          txHash = result.txHash;
         } catch (sigError: any) {
           console.error("Wallet signature error:", sigError);
           throw new Error(sigError.message || "Failed to sign message with wallet");
         }
       }
 
-      // Send to relayer
-      toast.loading('Sending transaction...', { id: 'relay-loading' });
-      console.log("Sending to relay API", {
-        sender: address,
-        receiver: toAddress,
-        amount: amount
-      });
-
-      const res = await fetch('/api/relay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sender: address,
-          receiver: toAddress,
-          amount,
-          signature,
-        }),
-      });
-
-      const result = await res.json();
-      console.log("Relay API response:", result);
-
-      if (!res.ok) {
-        let errorMessage = result.error || 'Relay failed';
-        if (errorMessage.includes('transfer amount exceeds balance')) {
-          errorMessage = 'Insufficient IDRX balance';
-        } else if (errorMessage.includes('insufficient allowance')) {
-          errorMessage = 'Please approve the IDRX Payment Contract first';
-        } else if (errorMessage.includes('insufficient funds') || errorMessage.includes('INSUFFICIENT_FUNDS')) {
-          errorMessage = 'The relayer needs LISK tokens to pay for gas fees';
-        } else if (errorMessage.includes('amount too small')) {
-          errorMessage = 'Amount is too small. Please enter a larger amount';
-        } else if (errorMessage.includes('invalid amount')) {
-          errorMessage = 'Please enter a valid amount';
-        }
-
-        toast.error(errorMessage, { id: 'relay-loading' });
-        throw new Error(errorMessage);
-      }
-
-      toast.success(`Transaction sent successfully!`, { id: 'relay-loading' });
-      setLastTransactionHash(result.txHash);
-      return result.txHash;
+      setLastTransactionHash(txHash);
+      return txHash;
     } catch (error: any) {
       console.error('Meta transaction failed:', error);
       let errorMsg = error.message || 'Transaction failed';

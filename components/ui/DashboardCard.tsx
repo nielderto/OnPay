@@ -3,32 +3,45 @@ import Balance from "@/components/data/Balance";
 import { Plus, Send, QrCode, Copy, ChevronDown, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import Address from "../data/Address";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import UserGreeting from "../UserGreeting";
 import { useAccount } from "wagmi";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function DashboardCard() {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const { address } = useAccount();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Prefetch all routes on component mount
+  useEffect(() => {
+    router.prefetch('/send');
+    router.prefetch('/receive');
+    router.prefetch('/topup');
+  }, [router]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
   };
 
   const handleCopyAddress = () => {
-    const addressElement = document.querySelector('[data-address]');
-    if (addressElement) {
-      copyToClipboard(addressElement.textContent || '');
+    if (address) {
+      copyToClipboard(address);
     }
     setIsActionsOpen(false);
   };
 
   const handleViewExplorer = () => {
-    const addressElement = document.querySelector('[data-address]');
-    if (addressElement) {
-      window.open(`https://liskscan.com/address/${addressElement.textContent}`, '_blank');
+    if (address) {
+      window.open(`https://sepolia-blockscout.lisk.com/address/${address}`, '_blank');
     }
     setIsActionsOpen(false);
+  };
+
+  const handleNavigation = async (path: string) => {
+    if (pathname === path) return;
+    await router.push(path);
   };
 
   return (
@@ -78,36 +91,33 @@ export default function DashboardCard() {
         {/* Bottom White Section */}
         <div className="bg-white rounded-b-2xl w-full shadow-lg">
           <div className="grid grid-cols-3 border-t border-gray-200">
-            <Link
-              href="/send"
+            <button
+              onClick={() => handleNavigation('/send')}
               className="flex flex-col items-center py-4 sm:py-6 hover:bg-blue-100 transition-colors cursor-pointer group"
-              prefetch
             >
               <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 mb-1.5 sm:mb-2 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
                 <Send className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
               <span className="text-xs sm:text-sm font-medium">Send</span>
-            </Link>
-            <Link
-              href="/receive"
+            </button>
+            <button
+              onClick={() => handleNavigation('/receive')}
               className="flex flex-col items-center py-4 sm:py-6 hover:bg-blue-100 transition-colors cursor-pointer group"
-              prefetch
             >
               <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 mb-1.5 sm:mb-2 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
                 <QrCode className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
               <span className="text-xs sm:text-sm font-medium">Receive</span>
-            </Link>
-            <Link
-              href="/topup"
+            </button>
+            <button
+              onClick={() => handleNavigation('/topup')}
               className="flex flex-col items-center py-4 sm:py-6 hover:bg-blue-100 transition-colors cursor-pointer group"
-              prefetch
             >
               <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 mb-1.5 sm:mb-2 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
                 <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
               <span className="text-xs sm:text-sm font-medium">Topup</span>
-            </Link>
+            </button>
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Logout from "./buttons/Logout";
 import { lookupENSName } from "@/lib/ens-service";
+import { LoaderCircle } from "lucide-react";
 
 // Cache for ENS names
 const ensNameCache = new Map<string, { name: string | null; timestamp: number }>();
@@ -97,7 +98,11 @@ export default function UserGreeting({ address }: UserGreetingProps) {
         <div>
           <div className="text-gray-500 text-sm">Welcome back,</div>
           <div className="font-bold text-xl">
-            {isLoading ? "Loading..." : nameToShow}
+            {isLoading ? (
+              <LoaderCircle className="w-4 h-4 animate-spin" />
+            ) : (
+              nameToShow
+            )}
           </div>
         </div>
       </div>

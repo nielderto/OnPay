@@ -24,7 +24,7 @@ export const TransactionActions = ({
       <button
         onClick={isApproved ? onSend : onApprove}
         disabled={isLoading || (isApproved && !hasEnoughTokens)}
-        className={`w-full py-2 px-4 rounded-md text-white font-medium ${isLoading || (isApproved && !hasEnoughTokens)
+        className={`w-full py-2 px-4 rounded-md text-white font-medium flex items-center justify-center ${isLoading || (isApproved && !hasEnoughTokens)
             ? 'bg-gray-400 cursor-not-allowed'
             : isApproved
               ? 'bg-blue-600 hover:bg-blue-700'
@@ -32,9 +32,9 @@ export const TransactionActions = ({
           }`}
       >
         {isLoading
-          ? <CircularProgress />
+          ? <CircularProgress size={24} color="white" />
           : isApproving
-            ? <CircularProgress />
+            ? <CircularProgress size={24} color="white" />
             : isApproved
               ? 'Send IDRX'
               : 'Approve'
