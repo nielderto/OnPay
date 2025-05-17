@@ -9,9 +9,10 @@ const ReceiveFunds: React.FC = () => {
     const { data: ensName } = useEnsName({ address: walletAddress });
     const router = useRouter();
 
+    const baseUrl = "https://lisk-builders-challenge.vercel.app";
     const qrCodeValue = ensName
-        ? `/send?ens=${encodeURIComponent(ensName)}`
-        : `/send?address=${walletAddress}`;
+        ? `${baseUrl}/send?ens=${encodeURIComponent(ensName)}`
+        : `${baseUrl}/send?address=${walletAddress}`;
 
     const handleScan = () => {
         router.push(qrCodeValue);

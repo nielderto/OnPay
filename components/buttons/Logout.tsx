@@ -6,13 +6,13 @@ import Cookies from "js-cookie";
 
 export default function Logout() {
     const { disconnect } = useDisconnect();
-    const router = useRouter();
+    // const router = useRouter();
 
     const handleLogout = () => {
         disconnect();
         Cookies.remove("isConnected", {path:"/"});
         Cookies.remove("walletAddress", {path:"/"});
-        router.push('/');
+        window.location.href = '/'; // Force full reload and redirect
     };
 
     return (
