@@ -47,7 +47,7 @@ export default function DashboardCard() {
   return (
     <div className="relative flex flex-col items-center ">
       {address && <UserGreeting address={address} />}
-      <div className="w-full max-w-[26rem] lg:max-w-[60rem] mx-auto p-2 sm:p-6 md:p-8 lg:p-10">
+      <div className="w-full sm:w-[26rem] lg:w-[60rem] mx-auto p-2 sm:p-6 md:p-8 lg:p-10">
         {/* Top Gradient Card */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-t-2xl p-4 sm:p-8 md:p-10 text-white flex flex-col gap-4 sm:gap-6">
           <div className="flex justify-between items-start w-full">
