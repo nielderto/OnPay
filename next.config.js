@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   env: {
     IDRX_API_KEY: process.env.IDRX_API_KEY,
     IDRX_SECRET_KEY: process.env.IDRX_SECRET_KEY,
@@ -11,6 +10,12 @@ const nextConfig: NextConfig = {
     XELLAR_CLIENT_SECRET: process.env.XELLAR_CLIENT_SECRET,
   },
   devIndicators: false,
+  // Add Vercel-specific optimizations
+  swcMinify: true,
+  reactStrictMode: true,
+  images: {
+    domains: ['dash-api.xellar.co'], // Add your image domains here
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig; 
