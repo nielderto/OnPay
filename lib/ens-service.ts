@@ -210,7 +210,14 @@ export async function registerENSNameWithMetaTx(ensName: string, walletClient: a
 // Modify the existing registerENSName function to use meta transactions for Xellar wallets
 export async function registerENSName(ensName: string, walletClient?: any): Promise<boolean> {
     try {
-        const normalized = normalize(ensName);
+        // Client-side only check
+        const isBrowser = typeof window !== 'undefined';
+
+        if (!isBrowser && !walletClient) {
+            throw new Error("Cannot register ENS name on server without a wallet client");
+        }
+
+        const normalized = normalize(ensName.toLowerCase());
         const parts = normalized.split(".");
 
         if (parts.length < 3 || parts[parts.length - 1] !== "eth" || parts[parts.length - 2] !== "lisk") {
@@ -221,6 +228,8 @@ export async function registerENSName(ensName: string, walletClient?: any): Prom
 
         if (label.length < 3) throw new Error("Username must be at least 3 characters");
         if (!/^[a-z0-9]+$/.test(label)) throw new Error("Username must be lowercase alphanumerics only");
+
+        console.log(`Registering ENS name: ${normalized}, label: ${label}`);
 
         // Check availability
         const available = await checkENSNameAvailable(ensName);
@@ -234,7 +243,8 @@ export async function registerENSName(ensName: string, walletClient?: any): Prom
             return await registerENSNameWithMetaTx(ensName, walletClient);
         } else {
             // Use traditional flow for MetaMask
-            if (!window.ethereum) {
+            // Check for window object (client-side only) before checking ethereum
+            if (typeof window === 'undefined' || !window.ethereum) {
                 throw new Error("No ethereum provider found. Please install MetaMask.");
             }
 
