@@ -10,6 +10,7 @@ import { AmountInput } from './AmountInput';
 import { BalanceDisplay } from './BalanceDisplay';
 import { TransactionReceipt } from './TransactionReceipt';
 import { checkENSNameAvailable } from '@/lib/ens-service';
+import { useSearchParams } from 'next/navigation';
 
 type FormData = {
   recipientAddress: string;
@@ -17,6 +18,9 @@ type FormData = {
 };
 
 export default function SendForm() {
+  const searchParams = useSearchParams();
+  const ens = searchParams.get('ens');
+  const addressParam = searchParams.get('address');
   const { address, isConnected } = useAccount();
   const [isProcessing, setIsProcessing] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -36,7 +40,7 @@ export default function SendForm() {
   } = useForm<FormData>({
     mode: 'onChange',
     defaultValues: {
-      recipientAddress: '',
+      recipientAddress: ens || addressParam || '',
       amount: '',
     },
   });

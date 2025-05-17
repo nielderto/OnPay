@@ -10,12 +10,6 @@ const nextConfig = {
     XELLAR_CLIENT_SECRET: process.env.XELLAR_CLIENT_SECRET,
   },
   devIndicators: false,
-  // Add Vercel-specific optimizations
-  swcMinify: true,
-  reactStrictMode: true,
-  images: {
-    domains: ['dash-api.xellar.co'], // Add your image domains here
-  },
 };
 
 export default nextConfig; 

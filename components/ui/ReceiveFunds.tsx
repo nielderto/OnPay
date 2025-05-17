@@ -1,16 +1,20 @@
 'use client'
 import React from 'react';
 import QRCode from 'react-qr-code';
-import { useAccount } from 'wagmi';
+import { useAccount, useEnsName } from 'wagmi';
 import { useRouter } from 'next/navigation';
 
 const ReceiveFunds: React.FC = () => {
     const { address: walletAddress } = useAccount();
+    const { data: ensName } = useEnsName({ address: walletAddress });
     const router = useRouter();
-    const qrCodeValue = `/send?address=${walletAddress}`;
+
+    const qrCodeValue = ensName
+        ? `/send?ens=${encodeURIComponent(ensName)}`
+        : `/send?address=${walletAddress}`;
 
     const handleScan = () => {
-        router.push(`/send?address=${walletAddress}`);
+        router.push(qrCodeValue);
     };
 
     return (
@@ -41,7 +45,7 @@ const ReceiveFunds: React.FC = () => {
                 Click or scan this QR code to send funds to this address
             </p>
             <div className="mt-2 text-xs break-all text-gray-500">
-                {walletAddress}
+                {ensName || walletAddress}
             </div>
         </div>
         </div>
