@@ -112,17 +112,17 @@ export default function SpendingChart() {
   };
 
   return (
-    <div className="w-full flex justify-center items-center min-h-[60vh] p-4">
-      <div className="bg-white rounded-lg p-6 shadow-lg w-full max-w-[55rem]">
+    <div className="w-full flex justify-center items-center min-h-[60vh] p-2 sm:p-4">
+      <div className="bg-white rounded-lg p-2 sm:p-6 shadow-lg w-full max-w-[55rem]">
         <h2 className="text-2xl font-bold mb-4 text-center">This week's activity</h2>
         {chartData ? (
-          <div className="w-full flex justify-center" style={{height: 400}}>
+          <div className="w-full flex justify-center items-center" style={{height: 300}}>
             <Bar data={chartData} options={options} style={{width: '100%'}} />
           </div>
         ) : (
-          <div className="flex justify-center items-center h-[400px]">Loading...</div>
+          <div className="flex justify-center items-center h-[300px]">Loading...</div>
         )}
-        <div className="mt-6 flex flex-col sm:flex-row justify-center gap-6 text-lg font-semibold">
+        <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 text-base sm:text-lg font-semibold">
           <div className="flex items-center gap-2 text-green-700">
             <span className="w-4 h-4 inline-block rounded bg-green-400"></span>
             Total Received: {totals.received.toLocaleString(undefined, { maximumFractionDigits: 4 })} <span className="font-normal">IDRX</span>
