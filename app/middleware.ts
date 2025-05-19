@@ -18,11 +18,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // If logged in and on root, redirect to homepage
-  if (pathname === '/') {
-    return NextResponse.redirect(new URL('/homepage', request.url));
-  }
-
   // Get the user's address from the cookie
   const address = request.cookies.get('walletAddress')?.value;
   

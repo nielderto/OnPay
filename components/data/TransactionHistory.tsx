@@ -1,13 +1,13 @@
 'use client'
 
 import { Send, Copy, ExternalLink } from "lucide-react";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useTransactions } from "../../hooks/useTransactions";
 import { formatUnits } from "viem";
 import axios from "axios";
 import { lookupENSName } from "@/lib/ens-service";
 import { AddressWithENS } from "../ui/AddressWithENS";
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAccount } from "wagmi";
 
 // Types
@@ -39,28 +39,33 @@ const fetchTransactions = async (address: string): Promise<Transaction[]> => {
     const url = `https://sepolia-blockscout.lisk.com/api?module=account&action=tokentx&address=${address}&contractaddress=${IDRX_TOKEN_ADDRESS}&page=1&offset=${TRANSACTIONS_PER_PAGE}&sort=desc`;
     const response = await axios.get(url);
 
+    console.log('API Response:', response.data); // Debug log
+
     if (response.data?.status !== "1" || !Array.isArray(response.data.result)) {
+      console.log('Invalid API response format'); // Debug log
       return [];
     }
 
-    return response.data.result.map((tx: any) => {
-      const fromAddress = tx.from?.toLowerCase() || '';
-      const toAddress = tx.to?.toLowerCase() || '';
-      const userAddress = address.toLowerCase();
-      
-      return {
+    return response.data.result
+      .filter((tx: any) => {
+        if (typeof tx.from !== 'string' || typeof tx.to !== 'string') {
+          console.warn('Transaction missing from/to:', tx);
+          return false;
+        }
+        return true;
+      })
+      .map((tx: any) => ({
         hash: tx.hash,
-        from: fromAddress,
-        to: toAddress,
+        from: tx.from.toLowerCase(),
+        to: tx.to.toLowerCase(),
         value: tx.value,
         timestamp: parseInt(tx.timeStamp),
-        type: toAddress === userAddress ? "received" : "sent",
+        type: tx.to.toLowerCase() === address.toLowerCase() ? "received" : "sent",
         status: "completed",
-        description: toAddress === userAddress ? "Payment received" : "Payment for services",
+        description: tx.to.toLowerCase() === address.toLowerCase() ? "Payment received" : "Payment for services",
         tokenSymbol: tx.tokenSymbol,
         tokenDecimal: tx.tokenDecimal,
-      };
-    });
+      }));
   } catch (error) {
     console.error("Error fetching transactions:", error);
     return [];
@@ -82,6 +87,21 @@ const formatDate = (timestamp: number) => {
   };
 };
 
+// Add this new function to prefetch ENS names
+const prefetchENSNames = async (addresses: string[], queryClient: any) => {
+  const uniqueAddresses = [...new Set(addresses)];
+  await Promise.all(
+    uniqueAddresses.map(address =>
+      queryClient.prefetchQuery({
+        queryKey: ['ensName', address],
+        queryFn: () => lookupENSName(address),
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 10 * 60 * 1000, // 10 minutes
+      })
+    )
+  );
+};
+
 // Components
 const TransactionItem = ({ tx }: { tx: Transaction }) => {
   const copyToClipboard = useCallback((text: string) => {
@@ -91,6 +111,12 @@ const TransactionItem = ({ tx }: { tx: Transaction }) => {
   const openInExplorer = useCallback((hash: string) => {
     window.open(`https://sepolia-blockscout.lisk.com/tx/${hash}`, '_blank');
   }, []);
+
+  console.log('Transaction data:', {
+    from: tx.from,
+    to: tx.to,
+    type: tx.type
+  });
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -179,15 +205,28 @@ export const TransactionHistory = () => {
   const [showAll, setShowAll] = useState(false);
   const { isConnected } = useTransactions();
   const { address } = useAccount();
+  const queryClient = useQueryClient();
 
-  const { data: transactions = [], isLoading } = useQuery({
+  const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
     queryKey: ['transactions', address],
     queryFn: () => fetchTransactions(address as string),
     enabled: !!address,
-    staleTime: REFETCH_INTERVAL,
-    gcTime: REFETCH_INTERVAL * 2,
-    refetchInterval: REFETCH_INTERVAL,
+    staleTime: 30000, // Data is considered fresh for 30 seconds
+    gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
+    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnReconnect: true, // Refetch when reconnecting
+    retry: 3, // Retry failed requests 3 times
   });
+
+  // Prefetch ENS names when transactions change
+  useEffect(() => {
+    if (transactions.length > 0) {
+      const addresses = transactions.flatMap(tx => [tx.from, tx.to]);
+      prefetchENSNames(addresses, queryClient);
+    }
+  }, [transactions, queryClient]);
 
   const filteredTransactions = useMemo(() => 
     transactions.filter(tx => {
