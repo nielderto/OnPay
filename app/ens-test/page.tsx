@@ -295,83 +295,8 @@ export default function ENSTestPage() {
             <div className="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-md">
                 <h1 className="text-2xl font-bold mb-4 text-gray-800">ENS Resolution Test</h1>
 
-                <div className="mb-6">
-                    <label className="block text-gray-700 mb-2">ENS Name to Test</label>
-                    <div className="flex">
-                        <input
-                            type="text"
-                            value={ensName}
-                            onChange={(e) => setEnsName(e.target.value)}
-                            className="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="e.g., haowen.lisk.eth"
-                        />
-                    </div>
-                </div>
-
                 <div className="mb-4 text-sm">
                     <strong>Gateway URL:</strong> {gatewayUrl || "Loading..."}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <button
-                        onClick={resolveWithMetamask}
-                        disabled={isLoading || !provider}
-                        className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 transition-colors disabled:opacity-50"
-                    >
-                        {isLoading ? "Loading..." : "Resolve with MetaMask"}
-                    </button>
-
-                    <button
-                        onClick={resolveManually}
-                        disabled={isLoading}
-                        className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50"
-                    >
-                        {isLoading ? "Loading..." : "Resolve with CCIP-Read"}
-                    </button>
-
-                    <button
-                        onClick={resolveDirectlyWithContract}
-                        disabled={isLoading || !provider}
-                        className="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600 transition-colors disabled:opacity-50"
-                    >
-                        {isLoading ? "Loading..." : "Test Contract Directly"}
-                    </button>
-                </div>
-
-                {error && (
-                    <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50">
-                        {error}
-                    </div>
-                )}
-
-                <div className="bg-gray-50 p-4 rounded-md mb-4">
-                    <h2 className="font-semibold mb-2 text-gray-700">MetaMask Resolution:</h2>
-                    <div className="font-mono bg-gray-100 p-2 rounded">
-                        {metamaskResult || "Not tested yet"}
-                    </div>
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-md mb-4">
-                    <h2 className="font-semibold mb-2 text-gray-700">CCIP-Read Manual Resolution:</h2>
-                    <div className="font-mono bg-gray-100 p-2 rounded">
-                        {manualResult || "Not tested yet"}
-                    </div>
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-md">
-                    <h2 className="font-semibold mb-2 text-gray-700">Direct Contract Call Result:</h2>
-                    <div className="font-mono bg-gray-100 p-2 rounded">
-                        {resolvedAddress || "Not tested yet"}
-                    </div>
-                </div>
-
-                <div className="mt-8 text-sm text-gray-600">
-                    <p className="mb-2">How this test works:</p>
-                    <ul className="list-disc pl-5 space-y-1">
-                        <li><strong>MetaMask Resolution</strong>: Tests if MetaMask's built-in ENS resolver recognizes the name</li>
-                        <li><strong>CCIP-Read Resolution</strong>: Uses our custom implementation with the gateway</li>
-                        <li><strong>Direct Contract Call</strong>: Calls the L1 resolver contract directly (should trigger OffchainLookup)</li>
-                    </ul>
                 </div>
 
                 {/* New Custom Wagmi ENS Test Component */}

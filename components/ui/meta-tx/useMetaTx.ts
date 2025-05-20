@@ -246,6 +246,7 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
     }
   };
 
+
   const handleXellarTransaction = async (
     walletClient: any,
     messageHash: `0x${string}`,
@@ -256,18 +257,24 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
     tokenDecimals: number
   ) => {
     try {
+      const walletAccount = walletClient.account;
       // Sign message with Xellar wallet
       const signature = await walletClient.signMessage({
+        account: walletAccount.address,
         message: { raw: messageHash }
       });
-      console.log("Xellar Kit signature received, length:", signature.length);
+
+      console.log("Xellar Kit signature received:", signature);
+      console.log("Signature length:", signature.length);
+      console.log("Signature type:", typeof signature);
 
       // Send to relayer
-      toast.loading('Sending transaction...', { id: 'relay-loading' });
+      toast.loading('Sending transaction via relay...', { id: 'relay-loading' });
       console.log("Sending to relay API", {
         sender: address,
         receiver: toAddress,
-        amount: amount
+        amount: amount,
+        signatureLength: signature.length
       });
 
       const res = await fetch('/api/relay', {
@@ -286,6 +293,7 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
 
       if (!res.ok) {
         let errorMessage = result.error || 'Relay failed';
+        // Error handling for specific cases
         if (errorMessage.includes('transfer amount exceeds balance')) {
           errorMessage = 'Insufficient IDRX balance';
         } else if (errorMessage.includes('insufficient allowance')) {
@@ -296,16 +304,34 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
           errorMessage = 'Amount is too small. Please enter a larger amount';
         } else if (errorMessage.includes('invalid amount')) {
           errorMessage = 'Please enter a valid amount';
+        } else if (errorMessage.includes('execution reverted')) {
+          // Handle the specific error we're seeing with Xellar
+          errorMessage = 'Transaction execution failed. This may be due to an issue with signature validation.';
+
+          // If this is a signature error from Xellar, throw a specific error for potential retry
+          if (errorMessage.includes('signature') || result.isSignatureError) {
+            throw new Error('SIGNATURE_VALIDATION_FAILED');
+          }
         }
 
         toast.error(errorMessage, { id: 'relay-loading' });
         throw new Error(errorMessage);
       }
 
+      // Verify we have a transaction hash before claiming success
+      if (!result.txHash) {
+        toast.error('Relay returned success but no transaction hash was provided', { id: 'relay-loading' });
+        throw new Error('No transaction hash returned from relay');
+      }
+
       toast.success(`Transaction sent successfully!`, { id: 'relay-loading' });
       return result.txHash;
     } catch (error: any) {
       console.error('Xellar transaction failed:', error);
+
+      // Clear any pending toast
+      toast.error(`Transaction failed: ${error.message}`, { id: 'relay-loading' });
+
       throw error;
     }
   };
@@ -424,69 +450,87 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
       console.log("Message hash:", messageHash);
 
       let txHash;
-      if (isXellarKit) {
-        txHash = await handleXellarTransaction(
-          walletClient,
-          messageHash,
-          publicClient,
-          address,
-          toAddress,
-          amount,
-          tokenDecimals
-        );
-      } else {
-        // Using other provider (like MetaMask)
+
+      // Maximum number of signature attempts for Xellar (for retry logic)
+      const maxAttempts = 2;
+      let attempts = 0;
+
+      while (attempts < maxAttempts) {
+        attempts++;
         try {
-          const signature = await walletClient.signMessage({
-            message: { raw: messageHash }
-          });
-          console.log("Wallet signature received, length:", signature.length);
+          if (isXellarKit) {
+            txHash = await handleXellarTransaction(
+              walletClient,
+              messageHash,
+              publicClient,
+              address,
+              toAddress,
+              amount,
+              tokenDecimals
+            );
+            break; // If successful, exit the retry loop
+          } else {
+            // Using other provider (like MetaMask)
+            const signature = await walletClient.signMessage({
+              message: { raw: messageHash }
+            });
+            console.log("Wallet signature received, length:", signature.length);
 
-          // Send to relayer
-          toast.loading('Sending transaction...', { id: 'relay-loading' });
-          console.log("Sending to relay API", {
-            sender: address,
-            receiver: toAddress,
-            amount: amount
-          });
-
-          const res = await fetch('/api/relay', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+            // Send to relayer
+            toast.loading('Sending transaction...', { id: 'relay-loading' });
+            console.log("Sending to relay API", {
               sender: address,
               receiver: toAddress,
-              amount,
-              signature,
-            }),
-          });
+              amount: amount
+            });
 
-          const result = await res.json();
-          console.log("Relay API response:", result);
+            const res = await fetch('/api/relay', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sender: address,
+                receiver: toAddress,
+                amount,
+                signature,
+              }),
+            });
 
-          if (!res.ok) {
-            let errorMessage = result.error || 'Relay failed';
-            if (errorMessage.includes('transfer amount exceeds balance')) {
-              errorMessage = 'Insufficient IDRX balance';
-            } else if (errorMessage.includes('insufficient allowance')) {
-              errorMessage = 'Please approve the IDRX Payment Contract first';
-            } else if (errorMessage.includes('insufficient funds') || errorMessage.includes('INSUFFICIENT_FUNDS')) {
-              errorMessage = 'The relayer needs LISK tokens to pay for gas fees';
-            } else if (errorMessage.includes('amount too small')) {
-              errorMessage = 'Amount is too small. Please enter a larger amount';
-            } else if (errorMessage.includes('invalid amount')) {
-              errorMessage = 'Please enter a valid amount';
+            const result = await res.json();
+            console.log("Relay API response:", result);
+
+            if (!res.ok) {
+              let errorMessage = result.error || 'Relay failed';
+              if (errorMessage.includes('transfer amount exceeds balance')) {
+                errorMessage = 'Insufficient IDRX balance';
+              } else if (errorMessage.includes('insufficient allowance')) {
+                errorMessage = 'Please approve the IDRX Payment Contract first';
+              } else if (errorMessage.includes('insufficient funds') || errorMessage.includes('INSUFFICIENT_FUNDS')) {
+                errorMessage = 'The relayer needs LISK tokens to pay for gas fees';
+              } else if (errorMessage.includes('amount too small')) {
+                errorMessage = 'Amount is too small. Please enter a larger amount';
+              } else if (errorMessage.includes('invalid amount')) {
+                errorMessage = 'Please enter a valid amount';
+              }
+
+              toast.error(errorMessage, { id: 'relay-loading' });
+              throw new Error(errorMessage);
             }
 
-            toast.error(errorMessage, { id: 'relay-loading' });
-            throw new Error(errorMessage);
+            toast.success(`Transaction sent successfully!`, { id: 'relay-loading' });
+            txHash = result.txHash;
+            break; // If successful, exit the retry loop
+          }
+        } catch (sigError: any) {
+          console.error(`Attempt ${attempts}/${maxAttempts} failed:`, sigError);
+
+          // If we've reached max attempts or it's not a signature error, throw
+          if (attempts >= maxAttempts || sigError.message !== 'SIGNATURE_VALIDATION_FAILED') {
+            throw new Error(sigError.message || "Failed to sign message with wallet");
           }
 
-          toast.success(`Transaction sent successfully!`, { id: 'relay-loading' });
-          txHash = result.txHash;
-        } catch (sigError: any) {
-          console.error("Wallet signature error:", sigError);
-          throw new Error(sigError.message || "Failed to sign message with wallet");
+          // If it's a signature error and we have more attempts, log and continue
+          console.log(`Retrying with different signature format (attempt ${attempts + 1}/${maxAttempts})`);
+          toast.loading(`Retrying with different signature format...`, { id: 'relay-loading' });
         }
       }
 
@@ -517,14 +561,85 @@ export const useMetaTx = (recipientAddress: string, amount: string, decimals: nu
     }
   };
 
+  // New function to combine approve and send in one operation
+  const handleApproveAndSend = async () => {
+    if (!walletClient || !address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // First check if already approved
+      if (!isApproved) {
+        // Need to approve first
+        toast.loading('Approving transaction...', { id: 'combined-tx' });
+
+        try {
+          const tokenContract = getContract({
+            address: idrxTokenContract,
+            abi: erc20Abi,
+            client: walletClient,
+          });
+
+          const amountToApprove = parseUnits(amount, tokenDecimals);
+          console.log("Approving amount:", amountToApprove.toString());
+
+          const approveTxHash = await tokenContract.write.approve([
+            idrxPayContract,
+            amountToApprove,
+          ]);
+
+          console.log("Approval transaction submitted:", approveTxHash);
+          toast.loading('Waiting for approval confirmation...', { id: 'combined-tx' });
+
+          // Wait for the transaction to be mined
+          if (publicClient) {
+            await publicClient.waitForTransactionReceipt({ hash: approveTxHash });
+            console.log("Approval transaction confirmed");
+          }
+
+          // Update the approval state
+          setIsApproved(true);
+        } catch (approveError: any) {
+          console.error("Error during approval:", approveError);
+          toast.error(`Approval failed: ${approveError.message}`, { id: 'combined-tx' });
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Now proceed with sending the transaction
+      toast.loading('Sending transaction...', { id: 'combined-tx' });
+
+      // Execute the meta transaction
+      await handleMetaTx();
+
+      toast.success('Transaction completed!', { id: 'combined-tx' });
+    } catch (error: any) {
+      console.error('Combined operation failed:', error);
+      toast.error(`Transaction failed: ${error.message}`, { id: 'combined-tx' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
-    isLoading,
-    isApproving,
-    isApproved,
-    hasEnoughTokens,
-    nonceError,
     handleApprove,
     handleMetaTx,
-    lastTransactionHash
+    handleApproveAndSend,
+    isLoading,
+    isApproved,
+    isApproving,
+    allowance,
+    balance,
+    hasEnoughTokens,
+    nonce,
+    isNonceLoaded,
+    nonceError,
+    debugInfo,
+    lastTransactionHash,
+    tokenDecimals
   };
 }; 
