@@ -3,7 +3,6 @@
 import { useMetaTx } from './meta-tx/useMetaTx';
 import { TransactionDetails } from './meta-tx/TransactionDetails';
 import { TransactionActions } from './meta-tx/TransactionActions';
-import { useState } from 'react';
 
 interface MetaTxProviderProps {
   recipientAddress: string;
@@ -12,7 +11,6 @@ interface MetaTxProviderProps {
   onProcessingChange?: (processing: boolean) => void;
   onSuccess?: () => void;
   onError?: (error: string) => void;
-  useCombinedButton?: boolean;
 }
 
 export default function MetaTxProvider({
@@ -21,8 +19,7 @@ export default function MetaTxProvider({
   decimals,
   onProcessingChange,
   onSuccess,
-  onError,
-  useCombinedButton = true
+  onError
 }: MetaTxProviderProps) {
   const {
     isLoading,
@@ -32,31 +29,16 @@ export default function MetaTxProvider({
     nonceError,
     handleApprove,
     handleMetaTx,
-    handleApproveAndSend,
     lastTransactionHash
   } = useMetaTx(recipientAddress, amount, decimals);
 
   const handleSend = async () => {
     try {
       const txHash = await handleMetaTx();
-      if (txHash && typeof txHash === 'string' && txHash.startsWith('0x')) {
-        console.log("Transaction successful with hash:", txHash);
+      if (txHash) {
         onSuccess?.();
-      } else {
-        console.error("Transaction did not return a valid hash");
-        onError?.("Transaction did not complete successfully");
       }
     } catch (error: any) {
-      console.error("Transaction failed:", error);
-      onError?.(error.message);
-    }
-  };
-
-  const handleCombined = async () => {
-    try {
-      const txHash = await handleApproveAndSend();
-    } catch (error: any) {
-      console.error("Combined transaction failed:", error);
       onError?.(error.message);
     }
   };
@@ -72,8 +54,6 @@ export default function MetaTxProvider({
         nonceError={nonceError}
         onApprove={handleApprove}
         onSend={handleSend}
-        onApproveAndSend={handleCombined}
-        useCombinedButton={useCombinedButton}
       />
     </div>
   );
