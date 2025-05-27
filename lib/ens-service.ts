@@ -108,106 +108,7 @@ export async function checkENSNameAvailable(ensName: string): Promise<{ availabl
     }
 }
 
-/**
- * Register an ENS name using meta transactions for Xellar wallet users
- * @param ensName The full ENS name (e.g., "username.lisk.eth")
- * @param walletClient The Xellar wallet client
- * @returns Promise<boolean> True if registration was successful
- */
-export async function registerENSNameWithMetaTx(ensName: string, walletClient: any): Promise<boolean> {
-    try {
-        const normalized = normalize(ensName);
-        const parts = normalized.split(".");
 
-        if (parts.length < 3 || parts[parts.length - 1] !== "eth" || parts[parts.length - 2] !== "lisk") {
-            throw new Error("ENS format must be username.lisk.eth");
-        }
-
-        const label = parts[0];
-
-        if (label.length < 3) throw new Error("Username must be at least 3 characters");
-        if (!/^[a-z0-9]+$/.test(label)) throw new Error("Username must be lowercase alphanumerics only");
-
-        // Check availability
-        const available = await checkENSNameAvailable(ensName);
-        if (!available.available) throw new Error(available.reason || "Name is taken");
-
-        if (!walletClient) {
-            throw new Error("Wallet client not available");
-        }
-
-        const address = walletClient.account.address;
-        console.log("Xellar wallet address:", address);
-
-        // Get the current nonce for this user from the contract
-        const nonce = await publicClient_L2.readContract({
-            address: L2_REGISTRAR_ADDRESS as `0x${string}`,
-            abi: L2Registrar.abi,
-            functionName: "nonces",
-            args: [address],
-        }) as bigint;
-        console.log("Current nonce:", nonce.toString());
-
-        // Generate the message hash for the registration
-        const messageHash = await publicClient_L2.readContract({
-            address: L2_REGISTRAR_ADDRESS as `0x${string}`,
-            abi: L2Registrar.abi,
-            functionName: "getMessageHash",
-            args: [
-                address,
-                label,
-                nonce,
-            ],
-        }) as `0x${string}`;
-        console.log("Message hash:", messageHash);
-
-        // Sign the message with Xellar wallet
-        const signature = await walletClient.signMessage({
-            message: { raw: messageHash }
-        });
-        console.log("Signature received:", signature);
-
-        // Send to relayer
-        const response = await fetch('https://ens-gateway.onpaylisk.workers.dev/api/ens-register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: normalized,
-                address,
-                label,
-                nonce: nonce.toString(),
-                signature,
-            }),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to register ENS name');
-        }
-
-        const result = await response.json();
-        console.log("Registration result:", result);
-
-        // Sync with ENS gateway
-        const syncResponse = await fetch('https://ens-gateway.onpaylisk.workers.dev/api/ens-sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: normalized, address }),
-        });
-
-        if (!syncResponse.ok) {
-            throw new Error(`Failed to sync ENS record: ${syncResponse.statusText}`);
-        }
-
-        console.log(`Successfully registered ${normalized} to ${address}`);
-        return true;
-    } catch (error: any) {
-        console.error("ENS registration failed:", error);
-        throw error;
-    }
-}
-
-// Modify the existing registerENSName function to use meta transactions for Xellar wallets
 export async function registerENSName(ensName: string, walletClient?: any): Promise<boolean> {
     try {
         // Client-side only check
@@ -237,27 +138,38 @@ export async function registerENSName(ensName: string, walletClient?: any): Prom
 
         // Determine if using Xellar Kit or MetaMask
         const isUsingXellarKit = !!walletClient;
+        let signer, address;
 
         if (isUsingXellarKit) {
-            // Use meta transaction flow for Xellar wallets
-            return await registerENSNameWithMetaTx(ensName, walletClient);
+            console.log("Using Xellar Kit for ENS registration");
+            // Get signer from wagmi's walletClient
+            if (!walletClient) {
+                throw new Error("Wallet client not available");
+            }
+
+            // Get address from account
+            address = walletClient.account.address;
+            console.log("Xellar wallet address:", address);
         } else {
             // Use traditional flow for MetaMask
             // Check for window object (client-side only) before checking ethereum
             if (typeof window === 'undefined' || !window.ethereum) {
                 throw new Error("No ethereum provider found. Please install MetaMask.");
             }
-
             const provider = new ethers.BrowserProvider(window.ethereum);
-            const signer = await provider.getSigner();
-            const address = await signer.getAddress();
+            signer = await provider.getSigner();
+            address = await signer.getAddress();
+            console.log("provider:", provider);
+            console.log("signer:", signer);
+            console.log("address:", address);
 
             // Ensure correct network
             const network = await provider.getNetwork();
-            const liskSepoliaChainIdHex = "0x106A";
-
+            console.log("network:", network);
+            const liskSepoliaChainIdHex = "0x106A"; // 4202
             if (network.chainId.toString(16).toLowerCase() !== liskSepoliaChainIdHex.toLowerCase().replace(/^0x/, '')) {
                 try {
+                    console.log(`Current network: ${network.chainId}, expected: ${liskSepoliaChainIdHex}`);
                     await window.ethereum.request({
                         method: "wallet_switchEthereumChain",
                         params: [{ chainId: liskSepoliaChainIdHex }]
@@ -266,28 +178,47 @@ export async function registerENSName(ensName: string, walletClient?: any): Prom
                     throw new Error("Unable to switch networks. Please switch to Lisk Sepolia network manually.");
                 }
             }
+        }
 
+        // Execute the registration
+        let txHash;
+
+        if (isUsingXellarKit) {
+            // Use Viem-style transaction with Xellar Kit
+            const transaction = await walletClient.writeContract({
+                address: L2_REGISTRAR_ADDRESS as `0x${string}`,
+                abi: L2Registrar.abi,
+                functionName: 'register',
+                args: [label, address],
+            });
+
+            txHash = transaction;
+            console.log("Transaction submitted with Xellar Kit:", txHash);
+        } else {
             // Use ethers.js with MetaMask
             const registrar = new ethers.Contract(L2_REGISTRAR_ADDRESS, L2Registrar.abi, signer);
             const tx = await registrar.register(label, address, {
-                gasLimit: 300000,
+                gasLimit: 300000,  // Set a reasonable gas limit
             });
             await tx.wait();
-
-            // Sync with ENS gateway
-            const response = await fetch('https://ens-gateway.onpaylisk.workers.dev/api/ens-sync', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: normalized, address }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to sync ENS record: ${response.statusText}`);
-            }
-
-            console.log(`Successfully registered ${normalized} to ${address}`);
-            return true;
+            txHash = tx.hash;
+            console.log("Transaction submitted with MetaMask:", txHash);
         }
+
+        // Sync with ENS gateway
+        const response = await fetch('https://ens-gateway.onpaylisk.workers.dev/api/ens-sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: normalized, address }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to sync ENS record: ${response.statusText}`);
+        }
+
+        console.log(`Successfully registered ${normalized} to ${address}`);
+        return true;
+
     } catch (error: any) {
         console.error("ENS registration failed:", error);
         throw error;
