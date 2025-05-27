@@ -16,13 +16,6 @@ const CriticalComponents = () => (
 
 const NonCriticalComponents = () => (
     <>
-        <Link 
-            href="/ens-test" 
-            className="bg-blue-100 text-blue-700 px-4 py-2 rounded-md hover:bg-blue-200 transition-colors"
-            prefetch={false} // Disable prefetching for non-critical links
-        >
-            Test ENS Resolution
-        </Link>
         <SuspenseBoundary fallback={<div>Loading chart...</div>}>
             <SpendingChart />
         </SuspenseBoundary>
