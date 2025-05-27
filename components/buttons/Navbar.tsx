@@ -4,7 +4,6 @@ import SendFunds from "./Send";
 import Topup from "./Topup";
 import Home from "./Home";
 import Link from "next/link";
-import { TypingAnimation } from "@/components/magicui/typing-animation";
 import { usePathname } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 

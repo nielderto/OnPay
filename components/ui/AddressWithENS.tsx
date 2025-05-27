@@ -1,92 +1,49 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { lookupENSName } from '../../lib/ens-service';
 
-// Cache for ENS names
-const ensNameCache = new Map<string, { name: string | null; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000; // 1 second
-
-// Function to clear the cache for a specific address
-export const clearENSCache = (address?: string) => {
-    if (address) {
-        ensNameCache.delete(address);
-    } else {
-        ensNameCache.clear();
-    }
-};
-
+// Remove the manual cache since React Query will handle caching
 interface AddressWithENSProps {
   address: string;
 }
 
+function isValidEthAddress(address: string | undefined): boolean {
+  return typeof address === 'string' && /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+// Custom hook for ENS lookup with optimized caching
+const useENSName = (address: string) => {
+  return useQuery<string | null>({
+    queryKey: ['ensName', address],
+    queryFn: () => lookupENSName(address),
+    enabled: isValidEthAddress(address),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * (attemptIndex + 1), 2000),
+  });
+};
+
 export const AddressWithENS = ({ address }: AddressWithENSProps) => {
-  const [ensName, setEnsName] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const shortAddress =
+    typeof address === 'string' && address.length >= 10
+      ? `${address.slice(0, 6)}...${address.slice(-4)}`
+      : address;
 
-  useEffect(() => {
-    if (!address) {
-      setIsLoading(false);
-      return;
-    }
-
-    let isMounted = true;
-    setIsLoading(true);
-
-    const fetchENSName = async (retryCount = 0) => {
-      try {
-        // Check cache first
-        const cached = ensNameCache.get(address);
-        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-          if (isMounted) {
-            setEnsName(cached.name);
-            setIsLoading(false);
-          }
-          return;
-        }
-
-        const name = await lookupENSName(address);
-        
-        // Update cache
-        ensNameCache.set(address, { name, timestamp: Date.now() });
-
-        if (isMounted) {
-          setEnsName(name);
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error(`Error fetching ENS name (attempt ${retryCount + 1}):`, error);
-        
-        if (retryCount < MAX_RETRIES) {
-          // Retry after delay
-          setTimeout(() => fetchENSName(retryCount + 1), RETRY_DELAY * (retryCount + 1));
-        } else {
-          if (isMounted) {
-            setEnsName(null);
-            setIsLoading(false);
-          }
-        }
-      }
-    };
-
-    fetchENSName();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [address]);
-  
-  if (!address) {
-    return <span>Unknown Address</span>;
+  if (!isValidEthAddress(address)) {
+    // Show the short address as fallback
+    return <span className="font-mono text-gray-400">{shortAddress}</span>;
   }
 
-  const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
-  const displayName = ensName && ensName.endsWith('.lisk.eth') ? ensName.replace(/\.lisk\.eth$/, '') : ensName;
+  const { data: ensName, isLoading } = useENSName(address);
+  const displayName =
+    ensName && typeof ensName === 'string' && ensName.endsWith('.lisk.eth')
+      ? ensName.replace(/\.lisk\.eth$/, '')
+      : ensName;
 
   return (
     <span className="font-mono">
-      {isLoading ? shortAddress : displayName ?? address}
+      {isLoading ? shortAddress : displayName ?? shortAddress}
     </span>
   );
 }; 

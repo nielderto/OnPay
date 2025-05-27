@@ -3,16 +3,15 @@ import Balance from "@/components/data/Balance";
 import { Plus, Send, QrCode, Copy, ChevronDown, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import Address from "../data/Address";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import UserGreeting from "../UserGreeting";
 import { useAccount } from "wagmi";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function DashboardCard() {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const { address } = useAccount();
   const router = useRouter();
-  const pathname = usePathname();
 
   // Prefetch all routes on component mount
   useEffect(() => {
@@ -21,33 +20,28 @@ export default function DashboardCard() {
     router.prefetch('/topup');
   }, [router]);
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = useCallback((text: string) => {
     navigator.clipboard.writeText(text);
-  };
+  }, []);
 
-  const handleCopyAddress = () => {
+  const handleCopyAddress = useCallback(() => {
     if (address) {
       copyToClipboard(address);
     }
     setIsActionsOpen(false);
-  };
+  }, [address, copyToClipboard]);
 
-  const handleViewExplorer = () => {
+  const handleViewExplorer = useCallback(() => {
     if (address) {
       window.open(`https://sepolia-blockscout.lisk.com/address/${address}`, '_blank');
     }
     setIsActionsOpen(false);
-  };
-
-  const handleNavigation = async (path: string) => {
-    if (pathname === path) return;
-    await router.push(path);
-  };
+  }, [address]);
 
   return (
     <div className="relative flex flex-col items-center ">
       {address && <UserGreeting address={address} />}
-      <div className="w-[26rem] lg:w-[60rem] mx-auto p-2 sm:p-6 md:p-8 lg:p-10">
+      <div className="w-full sm:w-[26rem] lg:w-[60rem] mx-auto p-2 sm:p-6 md:p-8 lg:p-10">
         {/* Top Gradient Card */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-t-2xl p-4 sm:p-8 md:p-10 text-white flex flex-col gap-4 sm:gap-6">
           <div className="flex justify-between items-start w-full">
@@ -59,8 +53,9 @@ export default function DashboardCard() {
             </div>
             <div className="relative">
               <button 
-                onClick={() => setIsActionsOpen(!isActionsOpen)}
+                onClick={() => setIsActionsOpen((open) => !open)}
                 className="flex items-center gap-1 text-white/90 hover:text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg hover:bg-white/10 transition-colors"
+                aria-label="Show actions"
               >
                 Actions
                 <ChevronDown className="w-4 h-4" />
@@ -71,6 +66,7 @@ export default function DashboardCard() {
                   <button
                     onClick={handleCopyAddress}
                     className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    aria-label="Copy address"
                   >
                     <Copy className="w-4 h-4" />
                     Copy Address
@@ -78,6 +74,7 @@ export default function DashboardCard() {
                   <button
                     onClick={handleViewExplorer}
                     className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    aria-label="View on Explorer"
                   >
                     <ExternalLink className="w-4 h-4" />
                     View on Explorer
@@ -91,33 +88,39 @@ export default function DashboardCard() {
         {/* Bottom White Section */}
         <div className="bg-white rounded-b-2xl w-full shadow-lg">
           <div className="grid grid-cols-3 border-t border-gray-200">
-            <button
-              onClick={() => handleNavigation('/send')}
+            <Link
+              href="/send"
+              prefetch={true}
               className="flex flex-col items-center py-4 sm:py-6 hover:bg-blue-100 transition-colors cursor-pointer group"
+              aria-label="Send"
             >
               <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 mb-1.5 sm:mb-2 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
                 <Send className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
               <span className="text-xs sm:text-sm font-medium">Send</span>
-            </button>
-            <button
-              onClick={() => handleNavigation('/receive')}
+            </Link>
+            <Link
+              href="/receive"
+              prefetch={true}
               className="flex flex-col items-center py-4 sm:py-6 hover:bg-blue-100 transition-colors cursor-pointer group"
+              aria-label="Receive"
             >
               <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 mb-1.5 sm:mb-2 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
                 <QrCode className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
               <span className="text-xs sm:text-sm font-medium">Receive</span>
-            </button>
-            <button
-              onClick={() => handleNavigation('/topup')}
+            </Link>
+            <Link
+              href="/topup"
+              prefetch={true}
               className="flex flex-col items-center py-4 sm:py-6 hover:bg-blue-100 transition-colors cursor-pointer group"
+              aria-label="Topup"
             >
               <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 mb-1.5 sm:mb-2 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
                 <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
               <span className="text-xs sm:text-sm font-medium">Topup</span>
-            </button>
+            </Link>
           </div>
         </div>
       </div>

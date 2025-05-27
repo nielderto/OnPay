@@ -8,7 +8,6 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useRouter } from "next/navigation"
-import { clearENSCache } from "./AddressWithENS"
 import { clearUserGreetingCache } from "../UserGreeting"
 
 const usernameSchema = z.object({
@@ -102,7 +101,6 @@ export default function UsernameSelection({ onSuccess }: UsernameSelectionProps)
             onSuccess?.()
 
             // Clear both ENS caches for this address
-            clearENSCache(address)
             clearUserGreetingCache(address)
 
             // Force a page refresh to ensure ENS name is properly displayed

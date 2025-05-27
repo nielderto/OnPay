@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   env: {
     IDRX_API_KEY: process.env.IDRX_API_KEY,
     IDRX_SECRET_KEY: process.env.IDRX_SECRET_KEY,
@@ -13,4 +12,4 @@ const nextConfig: NextConfig = {
   devIndicators: false,
 };
 
-export default nextConfig;
+export default nextConfig; 

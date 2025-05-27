@@ -123,9 +123,9 @@ const CreateOnRamp: React.FC = () => {
         />
       </div>
 
-      <div className="w-full max-w-2xl mx-auto p-8 bg-white shadow-xl rounded-xl">
-        <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">Create OnRamp</h1>
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="w-full max-w-2xl mx-auto p-2 sm:p-6 md:p-8 bg-white shadow-xl rounded-xl">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-8 text-center text-gray-800">Create OnRamp</h1>
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div>
             <label className="block text-lg font-semibold mb-2 text-gray-700">Bank Code</label>
             <select

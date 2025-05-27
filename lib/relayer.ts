@@ -50,7 +50,7 @@ async function checkTokenBalances(sender: string) {
   try {
     // Check relayer's native LISK balance first
     const nativeBalance = await provider.getBalance(wallet.address);
-    console.log(`Relayer native LISK balance: ${ethers.formatEther(nativeBalance)} LSK`);
+    console.log(`Relayer native ETH balance: ${ethers.formatEther(nativeBalance)} LSK`);
 
     if (nativeBalance === BigInt(0)) {
       console.error("⚠️ CRITICAL: Relayer has no LISK for gas fees! This will cause transactions to fail.");
