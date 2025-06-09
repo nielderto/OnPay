@@ -36,6 +36,17 @@ export default function FooterPage() {
                   "https://instagram.com/filbertowen",
                 ]}
               />
+              <DevPage
+                name="Nathanael Firgo"
+                role="Backend Developer"
+                imageUrl="/onel.png"
+                socialMedia={[
+                  "https://github.com/FOwen123",
+                  "www.linkedin.com/in/filbert-owen-susanto-470564270",
+                  "https://t.me/haowen34",
+                  "https://instagram.com/filbertowen",
+                ]}
+              />
             </div>
         </div>
       </footer>        
